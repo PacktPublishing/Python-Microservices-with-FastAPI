@@ -1,0 +1,18 @@
+<html>
+    <head>
+        <title>Página inicial</title>
+    </head>
+    <body>
+        <h1>
+            {% if name %}
+                Olá {{ name }}!
+                <br>
+            {% endif %}
+            {% if back %}
+                Bem-vindo ao portal
+            {% else %}
+                Bem-vindo de volta
+            {% endif %}
+        </h1>
+    </body>
+</html>

@@ -1,0 +1,18 @@
+# serializer version: 1
+# name: test_home_with_different_languages[homeit]
+  '''
+  <html>
+      <head>
+          <title>Pagina iniziale</title>
+      </head>
+      <body>
+          <h1>
+              
+              
+                  Ben Tornato
+              
+          </h1>
+      </body>
+  </html>
+  '''
+# ---

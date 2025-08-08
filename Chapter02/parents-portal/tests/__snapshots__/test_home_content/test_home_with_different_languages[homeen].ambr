@@ -1,0 +1,18 @@
+# serializer version: 1
+# name: test_home_with_different_languages[homeen]
+  '''
+  <html>
+      <head>
+          <title>Home</title>
+      </head>
+      <body>
+          <h1>
+              
+              
+                  Welcome to the Portal
+              
+          </h1>
+      </body>
+  </html>
+  '''
+# ---

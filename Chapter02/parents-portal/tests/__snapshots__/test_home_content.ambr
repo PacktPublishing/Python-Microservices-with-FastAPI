@@ -1,0 +1,35 @@
+# serializer version: 1
+# name: test_home_content[/]
+  '''
+  <html>
+      <head>
+          <title>Home</title>
+      </head>
+      <body>
+          <h1>
+              
+              
+                  Welcome to the Portal
+              
+          </h1>
+      </body>
+  </html>
+  '''
+# ---
+# name: test_home_content[/home]
+  '''
+  <html>
+      <head>
+          <title>Home</title>
+      </head>
+      <body>
+          <h1>
+              
+              
+                  Welcome to the Portal
+              
+          </h1>
+      </body>
+  </html>
+  '''
+# ---
