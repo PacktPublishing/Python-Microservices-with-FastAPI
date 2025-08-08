@@ -1,0 +1,18 @@
+# serializer version: 1
+# name: test_home_with_different_languages[homept]
+  '''
+  <html>
+      <head>
+          <title>Página inicial</title>
+      </head>
+      <body>
+          <h1>
+              
+              
+                  Bem-vindo de volta
+              
+          </h1>
+      </body>
+  </html>
+  '''
+# ---

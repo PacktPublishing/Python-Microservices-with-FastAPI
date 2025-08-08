@@ -1,0 +1,18 @@
+# serializer version: 1
+# name: test_home_with_different_languages[homefr]
+  '''
+  <html>
+      <head>
+          <title>Page d'accueil</title>
+      </head>
+      <body>
+          <h1>
+              
+              
+                  Bienvenue sur le portail
+              
+          </h1>
+      </body>
+  </html>
+  '''
+# ---

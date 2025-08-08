@@ -1,0 +1,36 @@
+[project]
+name = "parents-portal"
+version = "0.1.0"
+description = "The Parents portal of the application"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "cachetools>=6.1.0",
+  "fastapi[standard]>=0.115.14"
+]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+
+[tool.djlint]
+profile = "jinja"
+
+[tool.ruff]
+line-length = 66
+
+[tool.ruff.lint]
+select = ["I", "E4", "E7", "E9", "F", "Q"]
+
+[dependency-groups]
+dev = [
+  "djlint>=1.36.4",
+  "freezegun>=1.5.2",
+  "mypy>=1.16.1",
+  "pre-commit>=4.2.0",
+  "pytest>=8.4.1",
+  "pytest-cov>=6.2.1",
+  "pytest-sugar>=1.0.0",
+  "ruff>=0.12.2",
+  "syrupy>=4.9.1",
+  "types-cachetools>=6.0.0.20250525"
+]
