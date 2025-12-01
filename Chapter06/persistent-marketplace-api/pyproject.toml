@@ -1,0 +1,36 @@
+[project]
+name = "persistent-marketplace-api"
+version = "0.1.0"
+description = "Babysitting Marketplace API - Database Persistence with SQLAlchemy"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.17.2",
+    "asyncpg>=0.31.0",
+    "fastapi[standard]>=0.122.0",
+    "pydantic-settings>=2.12.0",
+    "sqlalchemy>=2.0.44",
+]
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.21.0",
+    "greenlet>=3.2.4",
+    "mypy>=1.19.0",
+    "pre-commit>=4.5.0",
+    "pytest>=9.0.1",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.14.7",
+    "testcontainers>=4.13.3",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 66
+
+[tool.ruff.lint]
+select = ["I", "E4", "E7", "E9", "F", "Q"]

@@ -1,0 +1,13 @@
+pagination:
+  include_page_info: true
+  include_total_count: true
+  sitters_page_size: 20
+  parents_page_size: 15
+  default_page_size: 20
+  max_page_size: 100
+
+features:
+  enhanced_pagination_enabled: true
+
+logging:
+  level: DEBUG
