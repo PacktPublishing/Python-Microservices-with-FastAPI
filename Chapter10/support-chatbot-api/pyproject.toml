@@ -1,0 +1,31 @@
+[project]
+name = "support-chatbot-api"
+version = "0.1.0"
+description = "Support chatbot API with RAG and PydanticAI"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=0.4.0",
+    "fastapi[standard]>=0.115.0",
+    "openai>=1.0.0",
+    "pydantic-ai>=0.0.1",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.2.1",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.0",
+    "pydantic-evals>=0.0.1",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+asyncio_mode = "auto"
+testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 66
