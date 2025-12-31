@@ -44,8 +44,7 @@ async def home(
         back = False
     else:
         back = True
-        response_cookie = request_cookie  # type: ignore[assignment]
-
+        response_cookie = request_cookie
     response = templates.TemplateResponse(
         request=request,
         name=f"home-{lang}.j2",
@@ -56,8 +55,7 @@ async def home(
     )
 
     response.set_cookie(
-        key="TRACKING",
-        value=response_cookie,
+        key="TRACKING", value=response_cookie or ""
     )
 
     return response
