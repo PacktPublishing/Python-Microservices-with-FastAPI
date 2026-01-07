@@ -1,0 +1,24 @@
+[project]
+name = "reservation-service"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]>=0.128.0",
+    "pydantic>=2.12.5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.10",
+    "ty>=0.0.9",
+]
+
+[tool.ruff]
+line-length = 66
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
