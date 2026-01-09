@@ -63,7 +63,6 @@ class ReserveSlotUseCase:
     def execute(
         self, request: ReserveSlotRequest
     ) -> SlotResponse:
-
         # Find slot
         slot = self.repository.find_by_id(request.slot_id)
         if not slot:

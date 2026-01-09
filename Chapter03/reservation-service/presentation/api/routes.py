@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Request
-from application.use_cases import  CreateAvailabilitySlotUseCase
+from application.use_cases import CreateAvailabilitySlotUseCase
 from application.dtos import CreateSlotRequest
 from application.exceptions import InvalidInputException
 from .schemas import CreateSlotRequestSchema, SlotResponseSchema
@@ -17,12 +17,11 @@ router = APIRouter(prefix="/api/v1")
     description="Create a new babysitter availability slot for a specific day and time",
     responses={
         201: {"description": "Slot created successfully"},
-        #400: {"model": ErrorResponseSchema, "description": "Invalid input"},
+        # 400: {"model": ErrorResponseSchema, "description": "Invalid input"},
     },
 )
 async def create_availability_slot(
-    request: Request,
-    create_request: CreateSlotRequestSchema
+    request: Request, create_request: CreateSlotRequestSchema
 ) -> SlotResponseSchema:
     repository = request.state.repository
 
@@ -49,5 +48,6 @@ async def create_availability_slot(
             confirmed_at=result.confirmed_at,
         )
     except InvalidInputException as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )

@@ -66,7 +66,7 @@ class TestCreateAvailabilitySlotUseCase:
         use_case = CreateAvailabilitySlotUseCase(empty_repository)
 
         request = CreateSlotRequest(
-            week_day="funday",  # ty: ignore[invalid-argument-type] 
+            week_day="funday",  # ty: ignore[invalid-argument-type]
             time_slot=TimeSlot.MORNING,
             babysitter_name="Maria",
         )
@@ -76,8 +76,9 @@ class TestCreateAvailabilitySlotUseCase:
         ):
             use_case.execute(request)
 
-
-    def test_create_slot_with_empty_babysitter_name(self, empty_repository):
+    def test_create_slot_with_empty_babysitter_name(
+        self, empty_repository
+    ):
         use_case = CreateAvailabilitySlotUseCase(empty_repository)
 
         request = CreateSlotRequest(
@@ -86,9 +87,10 @@ class TestCreateAvailabilitySlotUseCase:
             babysitter_name="",  # Invalid
         )
 
-        with pytest.raises(InvalidInputException, match="Invalid input"):
+        with pytest.raises(
+            InvalidInputException, match="Invalid input"
+        ):
             use_case.execute(request)
-
 
 
 class TestReserveSlotUseCase:
@@ -163,7 +165,6 @@ class TestReserveSlotUseCase:
         with pytest.raises(SlotNotFoundException):
             use_case.execute(request)
 
-
     def test_reserve_with_invalid_email(self, empty_repository):
         slot = AvailabilitySlot(
             week_day=WeekDay.MONDAY,
@@ -181,6 +182,7 @@ class TestReserveSlotUseCase:
 
         with pytest.raises(InvalidInputException):
             use_case.execute(request)
+
 
 class TestConfirmReservationUseCase:
     def test_confirm_reserved_slot_successfully(
@@ -357,26 +359,33 @@ class TestListAvailableSlotsUseCase:
         self, seeded_repository
     ):
         use_case = ListAvailableSlotsUseCase(seeded_repository)
-        request = ListAvailableSlotsRequest(week_day=WeekDay.MONDAY)
+        request = ListAvailableSlotsRequest(
+            week_day=WeekDay.MONDAY
+        )
 
         response = use_case.execute(request)
 
         # Should only return Monday slots (3 time slots)
         assert len(response) == 3
-        assert all(slot.week_day == WeekDay.MONDAY for slot in response)
+        assert all(
+            slot.week_day == WeekDay.MONDAY for slot in response
+        )
 
     def test_list_slots_filtered_by_time_slot(
         self, seeded_repository
     ):
         use_case = ListAvailableSlotsUseCase(seeded_repository)
-        request = ListAvailableSlotsRequest(time_slot=TimeSlot.MORNING)
+        request = ListAvailableSlotsRequest(
+            time_slot=TimeSlot.MORNING
+        )
 
         response = use_case.execute(request)
 
         # Should return morning slots for all 7 days
         assert len(response) == 7
         assert all(
-            slot.time_slot == TimeSlot.MORNING for slot in response
+            slot.time_slot == TimeSlot.MORNING
+            for slot in response
         )
 
     def test_list_slots_filtered_by_both(self, seeded_repository):
@@ -391,7 +400,6 @@ class TestListAvailableSlotsUseCase:
         assert len(response) == 1
         assert response[0].week_day.value == "tuesday"
         assert response[0].time_slot.value == "afternoon"
-
 
     def test_list_empty_repository(self, empty_repository):
         use_case = ListAvailableSlotsUseCase(empty_repository)

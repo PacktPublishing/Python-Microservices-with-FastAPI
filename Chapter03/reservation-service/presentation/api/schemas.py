@@ -36,6 +36,7 @@ class CreateSlotRequestSchema(BaseModel):
         }
     )
 
+
 class SlotResponseSchema(BaseModel):
     id: UUID
     week_day: str
@@ -48,18 +49,17 @@ class SlotResponseSchema(BaseModel):
     confirmed_at: datetime | None = None
 
     model_config = ConfigDict(
-         json_schema_extra={
-             "example": {
-                 "id": "123e4567-e89b-12d3-a456-426614174000",
-                 "week_day": "monday",
-                 "time_slot": "morning",
-                 "babysitter_name": "Maria Rodriguez",
-                 "status": "available",
-                 "reservation_email": None,
-                 "reservation_description": None,
-                 "reserved_at": None,
-                 "confirmed_at": None,
-             }
-         },
+        json_schema_extra={
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "week_day": "monday",
+                "time_slot": "morning",
+                "babysitter_name": "Maria Rodriguez",
+                "status": "available",
+                "reservation_email": None,
+                "reservation_description": None,
+                "reserved_at": None,
+                "confirmed_at": None,
+            }
+        },
     )
-
