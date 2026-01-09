@@ -22,3 +22,6 @@ line-length = 66
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.fastapi]
+entrypoint = "presentation.main:app"
