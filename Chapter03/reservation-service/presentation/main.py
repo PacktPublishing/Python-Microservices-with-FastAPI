@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[State]:
 
 
 app = FastAPI(
-    title="Reservation API",
+    title="Babysitter Reservation API",
     lifespan=lifespan,
 )
 
