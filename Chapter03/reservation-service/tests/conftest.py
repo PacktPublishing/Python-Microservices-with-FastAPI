@@ -1,8 +1,9 @@
 import pytest
+from seeders import SlotSeeder
+
 from infrastructure.in_memory_slot_repository import (
     InMemorySlotRepository,
 )
-from seeders import SlotSeeder
 
 
 @pytest.fixture

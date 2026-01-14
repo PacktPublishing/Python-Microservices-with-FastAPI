@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from decimal import Decimal
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
 
-from domain.value_objects import WeekDay, TimeSlot
+from domain.value_objects import TimeSlot, WeekDay
 
 
 @dataclass

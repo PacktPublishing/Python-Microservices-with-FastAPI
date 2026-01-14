@@ -2,12 +2,12 @@ from typing import List
 from uuid import UUID
 
 from domain.entities import AvailabilitySlot
-from domain.value_objects import (
-    WeekDay,
-    TimeSlot,
-    BabysitterInfo,
-)
 from domain.repositories import AvailabilitySlotRepository
+from domain.value_objects import (
+    BabysitterInfo,
+    TimeSlot,
+    WeekDay,
+)
 
 
 class SlotSeeder:

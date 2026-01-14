@@ -3,7 +3,7 @@ from typing import List
 from uuid import UUID
 
 from .entities import AvailabilitySlot
-from .value_objects import WeekDay, TimeSlot
+from .value_objects import TimeSlot, WeekDay
 
 
 class AvailabilitySlotRepository(ABC):

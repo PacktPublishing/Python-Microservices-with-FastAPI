@@ -1,12 +1,13 @@
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import TypedDict
+
 from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
-from collections.abc import AsyncIterator
+
+from domain.repositories import AvailabilitySlotRepository
 from infrastructure.in_memory_slot_repository import (
     InMemorySlotRepository,
 )
-from domain.repositories import AvailabilitySlotRepository
 
 from .api.routes import router
 
@@ -27,7 +28,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[State]:
 
 
 app = FastAPI(
-    title="Babysitter Reservation API",
+    title="Reservation API",
     lifespan=lifespan,
 )
 

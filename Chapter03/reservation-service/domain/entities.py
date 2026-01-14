@@ -1,18 +1,20 @@
-from pydantic.dataclasses import dataclass
 from dataclasses import field
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
-from .value_objects import (
-    WeekDay,
-    TimeSlot,
-    BabysitterInfo,
-    SlotStatus,
-    ReservationRequest,
-)
+
+from pydantic.dataclasses import dataclass
+
 from .exceptions import (
     SlotNotAvailableException,
     SlotNotReservedException,
 )
-from datetime import datetime, timezone
+from .value_objects import (
+    BabysitterInfo,
+    ReservationRequest,
+    SlotStatus,
+    TimeSlot,
+    WeekDay,
+)
 
 
 @dataclass(kw_only=True)
