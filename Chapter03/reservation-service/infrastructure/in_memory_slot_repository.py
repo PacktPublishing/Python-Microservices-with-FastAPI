@@ -1,10 +1,10 @@
+from copy import deepcopy
 from typing import Dict, List
 from uuid import UUID
-from copy import deepcopy
 
 from domain.entities import AvailabilitySlot
 from domain.repositories import AvailabilitySlotRepository
-from domain.value_objects import WeekDay, TimeSlot, SlotStatus
+from domain.value_objects import SlotStatus, TimeSlot, WeekDay
 
 
 class InMemorySlotRepository(AvailabilitySlotRepository):

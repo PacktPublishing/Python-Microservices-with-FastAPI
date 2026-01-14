@@ -1,4 +1,5 @@
 from domain.entities import AvailabilitySlot
+
 from .dtos import SlotResponse
 
 

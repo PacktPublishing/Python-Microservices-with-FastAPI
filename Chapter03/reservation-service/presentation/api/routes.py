@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, status, Request
-from application.use_cases import CreateAvailabilitySlotUseCase
+from fastapi import APIRouter, HTTPException, Request, status
+
 from application.dtos import CreateSlotRequest
 from application.exceptions import InvalidInputException
-from .schemas import CreateSlotRequestSchema, SlotResponseSchema
-from domain.value_objects import WeekDay, TimeSlot
+from application.use_cases import CreateAvailabilitySlotUseCase
+from domain.value_objects import TimeSlot, WeekDay
 
+from .schemas import CreateSlotRequestSchema, SlotResponseSchema
 
 router = APIRouter(prefix="/api/v1")
 

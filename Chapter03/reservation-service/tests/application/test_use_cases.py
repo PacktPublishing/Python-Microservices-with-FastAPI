@@ -1,27 +1,27 @@
-import pytest
-from decimal import Decimal
 from uuid import uuid4
 
-from application.use_cases import (
-    CreateAvailabilitySlotUseCase,
-    ReserveSlotUseCase,
-    ConfirmReservationUseCase,
-    RefuseReservationUseCase,
-    ListAvailableSlotsUseCase,
-)
+import pytest
+
 from application.dtos import (
-    CreateSlotRequest,
-    ReserveSlotRequest,
     ConfirmSlotRequest,
-    RefuseSlotRequest,
+    CreateSlotRequest,
     ListAvailableSlotsRequest,
+    RefuseSlotRequest,
+    ReserveSlotRequest,
 )
 from application.exceptions import (
     InvalidInputException,
     SlotNotFoundException,
 )
-from domain.value_objects import WeekDay, TimeSlot, BabysitterInfo
+from application.use_cases import (
+    ConfirmReservationUseCase,
+    CreateAvailabilitySlotUseCase,
+    ListAvailableSlotsUseCase,
+    RefuseReservationUseCase,
+    ReserveSlotUseCase,
+)
 from domain.entities import AvailabilitySlot
+from domain.value_objects import BabysitterInfo, TimeSlot, WeekDay
 
 
 class TestCreateAvailabilitySlotUseCase:
