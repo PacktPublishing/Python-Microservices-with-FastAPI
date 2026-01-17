@@ -18,7 +18,6 @@ router = APIRouter(prefix="/api/v1")
     description="Create a new babysitter availability slot for a specific day and time",
     responses={
         201: {"description": "Slot created successfully"},
-        # 400: {"model": ErrorResponseSchema, "description": "Invalid input"},
     },
 )
 async def create_availability_slot(
