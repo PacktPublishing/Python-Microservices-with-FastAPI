@@ -12,6 +12,7 @@ from infrastructure.in_memory_slot_repository import (
 )
 
 from .api.routes import router
+from .middleware import StateCheckMiddleware
 
 logger = logging.getLogger("uvicorn")
 
@@ -66,3 +67,6 @@ async def measuring_request_performance(
     logger.debug(f"measured performance:{str(process_time)}")
     response.headers["X-Process-Time"] = str(process_time)
     return response
+
+
+app.add_middleware(StateCheckMiddleware)
