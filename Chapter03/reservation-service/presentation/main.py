@@ -1,8 +1,10 @@
+import logging
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import TypedDict
+from typing import Awaitable, Callable, TypedDict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 
 from domain.repositories import AvailabilitySlotRepository
 from infrastructure.in_memory_slot_repository import (
@@ -10,6 +12,8 @@ from infrastructure.in_memory_slot_repository import (
 )
 
 from .api.routes import router
+
+logger = logging.getLogger("uvicorn")
 
 
 class State(TypedDict):
@@ -48,3 +52,17 @@ def health_check():
 
 
 app.include_router(router=router)
+
+
+@app.middleware("http")
+async def measuring_request_performance(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+):
+    start_time = time.perf_counter()
+    logger.debug("measuring performance logger")
+    response = await call_next(request)
+    process_time = time.perf_counter() - start_time
+    logger.debug(f"measured performance:{str(process_time)}")
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
