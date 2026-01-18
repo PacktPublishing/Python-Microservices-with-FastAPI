@@ -15,7 +15,7 @@ class StateCheckMiddleware:
     async def __call__(
         self, scope: Scope, receive: Receive, send: Send
     ) -> None:
-        if scope.get("type") == "http" and scope.get("health"):
+        if scope.get("type") == "http":
             state = scope.get("state")
             logger.info(state)
         await self.app(scope, receive, send)
