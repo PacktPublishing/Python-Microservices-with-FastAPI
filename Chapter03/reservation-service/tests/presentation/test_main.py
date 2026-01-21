@@ -222,7 +222,9 @@ def test_reserve_slot_already_reserved(test_client):
         "parent_email": "parent@example.com",
         "description": "Date night",
     }
-    test_client.post(f"/api/v1/slots/{slot_id}/reserve", json=reserve_payload)
+    test_client.post(
+        f"/api/v1/slots/{slot_id}/reserve", json=reserve_payload
+    )
 
     # Try to reserve again
     response = test_client.post(
@@ -249,10 +251,15 @@ def test_confirm_reservation_success(test_client):
 
     test_client.post(
         f"/api/v1/slots/{slot_id}/reserve",
-        json={"parent_email": "parent@example.com", "description": ""},
+        json={
+            "parent_email": "parent@example.com",
+            "description": "",
+        },
     )
 
-    response = test_client.post(f"/api/v1/slots/{slot_id}/confirm")
+    response = test_client.post(
+        f"/api/v1/slots/{slot_id}/confirm"
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -263,7 +270,9 @@ def test_confirm_reservation_success(test_client):
 def test_confirm_reservation_not_found(test_client):
     fake_id = "00000000-0000-0000-0000-000000000000"
 
-    response = test_client.post(f"/api/v1/slots/{fake_id}/confirm")
+    response = test_client.post(
+        f"/api/v1/slots/{fake_id}/confirm"
+    )
 
     assert response.status_code == 404
 
@@ -280,7 +289,9 @@ def test_confirm_reservation_not_reserved(test_client):
     )
     slot_id = create_response.json()["id"]
 
-    response = test_client.post(f"/api/v1/slots/{slot_id}/confirm")
+    response = test_client.post(
+        f"/api/v1/slots/{slot_id}/confirm"
+    )
 
     assert response.status_code == 400
 
@@ -302,7 +313,10 @@ def test_refuse_reservation_success(test_client):
 
     test_client.post(
         f"/api/v1/slots/{slot_id}/reserve",
-        json={"parent_email": "parent@example.com", "description": ""},
+        json={
+            "parent_email": "parent@example.com",
+            "description": "",
+        },
     )
 
     response = test_client.post(f"/api/v1/slots/{slot_id}/refuse")
