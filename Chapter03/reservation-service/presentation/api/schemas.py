@@ -23,9 +23,9 @@ class TimeSlotSchema(str, Enum):
 
 # Request schemas
 class CreateSlotRequestSchema(BaseModel):
-    week_day: WeekDaySchema = Field(..., example="monday")
-    time_slot: TimeSlotSchema = Field(..., example="morning")
-    babysitter_name: str = Field(..., example="Maria Rodriguez")
+    week_day: WeekDaySchema
+    time_slot: TimeSlotSchema
+    babysitter_name: str
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -33,6 +33,20 @@ class CreateSlotRequestSchema(BaseModel):
                 "week_day": "monday",
                 "time_slot": "morning",
                 "babysitter_name": "Maria Rodriguez",
+            }
+        }
+    )
+
+
+class ReserveSlotRequestSchema(BaseModel):
+    parent_email: str = Field(..., description="Email of the parent making the reservation")
+    description: str = Field("", description="Optional description for the reservation")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "parent_email": "parent@example.com",
+                "description": "Need babysitter for date night",
             }
         }
     )
