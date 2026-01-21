@@ -1,6 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
 
 from application.dtos import (
     ConfirmSlotRequest,
@@ -9,7 +15,10 @@ from application.dtos import (
     RefuseSlotRequest,
     ReserveSlotRequest,
 )
-from application.exceptions import InvalidInputException, SlotNotFoundException
+from application.exceptions import (
+    InvalidInputException,
+    SlotNotFoundException,
+)
 from application.use_cases import (
     ConfirmReservationUseCase,
     CreateAvailabilitySlotUseCase,
@@ -92,7 +101,9 @@ async def list_available_slots(
 
     dto_request = ListAvailableSlotsRequest(
         week_day=WeekDay(week_day.value) if week_day else None,
-        time_slot=TimeSlot(time_slot.value) if time_slot else None,
+        time_slot=TimeSlot(time_slot.value)
+        if time_slot
+        else None,
     )
 
     use_case = ListAvailableSlotsUseCase(repository)
@@ -122,7 +133,9 @@ async def list_available_slots(
     responses={
         200: {"description": "Slot reserved successfully"},
         404: {"description": "Slot not found"},
-        400: {"description": "Slot not available or invalid input"},
+        400: {
+            "description": "Slot not available or invalid input"
+        },
     },
 )
 async def reserve_slot(
@@ -169,9 +182,13 @@ async def reserve_slot(
     summary="Confirm a reservation",
     description="Babysitter confirms a pending reservation",
     responses={
-        200: {"description": "Reservation confirmed successfully"},
+        200: {
+            "description": "Reservation confirmed successfully"
+        },
         404: {"description": "Slot not found"},
-        400: {"description": "Slot not reserved or invalid state"},
+        400: {
+            "description": "Slot not reserved or invalid state"
+        },
     },
 )
 async def confirm_reservation(
@@ -215,7 +232,9 @@ async def confirm_reservation(
     responses={
         200: {"description": "Reservation refused successfully"},
         404: {"description": "Slot not found"},
-        400: {"description": "Slot not reserved or invalid state"},
+        400: {
+            "description": "Slot not reserved or invalid state"
+        },
     },
 )
 async def refuse_reservation(

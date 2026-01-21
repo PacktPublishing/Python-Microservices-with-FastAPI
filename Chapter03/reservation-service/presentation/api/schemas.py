@@ -39,8 +39,13 @@ class CreateSlotRequestSchema(BaseModel):
 
 
 class ReserveSlotRequestSchema(BaseModel):
-    parent_email: str = Field(..., description="Email of the parent making the reservation")
-    description: str = Field("", description="Optional description for the reservation")
+    parent_email: str = Field(
+        ...,
+        description="Email of the parent making the reservation",
+    )
+    description: str = Field(
+        "", description="Optional description for the reservation"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
