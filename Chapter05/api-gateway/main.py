@@ -1,6 +1,8 @@
-def main():
-    print("Hello from api-gateway!")
+from fastapi import FastAPI
 
 
-if __name__ == "__main__":
-    main()
+app = FastAPI(title="Babysitting API gateway")
+
+@app.get("/")
+async def root():
+    return {"message": "API Gateway"}

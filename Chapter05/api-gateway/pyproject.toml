@@ -7,3 +7,18 @@ requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.128.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+    "ty>=0.0.14",
+]
+
+[tool.ruff]
+line-length = 66
+
+[tool.ruff.lint]
+select = ["I", "E4", "E7", "F", "Q"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
