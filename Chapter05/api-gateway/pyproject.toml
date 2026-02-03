@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.128.0",
+    "httpx>=0.28.1",
+    "pydantic[email]>=2.12.5",
 ]
 
 [dependency-groups]
