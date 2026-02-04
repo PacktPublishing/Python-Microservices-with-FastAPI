@@ -37,7 +37,6 @@ class ReservationClientInterface(ABC):
         """Reserve a slot for a parent."""
         ...
 
-
     @abstractmethod
     async def health_check(self) -> bool:
         """Check if the reservation service is healthy."""
@@ -108,7 +107,6 @@ class MockReservationClient(ReservationClientInterface):
         if time_slot:
             result = [s for s in result if s["time_slot"] == time_slot]
         return result
-
 
     async def reserve_slot(
         self,

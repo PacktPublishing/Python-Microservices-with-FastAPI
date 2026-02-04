@@ -1,7 +1,39 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import TypedDict
+
 from fastapi import FastAPI
 
 from middleware import RateLimiter, RateLimitMiddleware
 from routers import aggregation_router, proxy_router
+from services import PortalClient, ReservationClient, PortalClientInterface, ReservationClientInterface
+
+SERVICE_URLS = {
+    "portal": "",
+    "reservations": "http://localhost:8003",
+}
+
+
+class State(TypedDict):
+    portal_client : PortalClientInterface
+    reservation_client: ReservationClientInterface
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[State]:
+    # Startup: Initialize service clients
+    portal_client = PortalClient(base_url="http://localhost:8002")
+    reservation_client = ReservationClient(
+        base_url="http://localhost:8003"
+    )
+
+    yield {
+        "portal_client": portal_client,
+        "reservation_client": reservation_client,
+    }
+
+    # Shutdown: Cleanup if needed
+    pass
+
 
 app = FastAPI(
     title="Babysitting API Gateway",
@@ -30,6 +62,7 @@ Tiered rate limits applied by endpoint type:
 - Aggregated endpoints: 30 req/min
     """,
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Configure rate limiter with tiered limits
@@ -58,7 +91,9 @@ rate_limiter.add_rule(
 
 # Write tier - POST operations (lowest limit for mutations)
 rate_limiter.add_rule(
-    path_matcher=lambda p: "/reserve" in p or "/confirm" in p or "/refuse" in p,
+    path_matcher=lambda p: "/reserve" in p
+    or "/confirm" in p
+    or "/refuse" in p,
     requests_per_minute=20,
     burst_size=25,
 )
@@ -76,10 +111,7 @@ async def root():
     return {
         "message": "Babysitting API Gateway",
         "docs": "/docs",
-        "services": {
-            "portal": "http://localhost:8002",
-            "reservations": "http://localhost:8003",
-        },
+        "services": SERVICE_URLS,
         "endpoints": {
             "proxy": ["/portal/*", "/reservations/*"],
             "aggregation": [

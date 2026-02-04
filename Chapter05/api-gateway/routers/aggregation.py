@@ -2,13 +2,17 @@ import asyncio
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+)
 from pydantic import BaseModel, EmailStr
 
 from services import (
-    PortalClient,
     PortalClientInterface,
-    ReservationClient,
     ReservationClientInterface,
 )
 
@@ -60,27 +64,12 @@ class HealthStatusResponse(BaseModel):
     all_healthy: bool
 
 
-# Default client instances
-_portal_client: PortalClientInterface = PortalClient()
-_reservation_client: ReservationClientInterface = ReservationClient()
+def get_portal_client(request: Request) -> PortalClientInterface:
+    return request.state.portal_client
 
 
-def get_portal_client() -> PortalClientInterface:
-    return _portal_client
-
-
-def get_reservation_client() -> ReservationClientInterface:
-    return _reservation_client
-
-
-def set_portal_client(client: PortalClientInterface) -> None:
-    global _portal_client
-    _portal_client = client
-
-
-def set_reservation_client(client: ReservationClientInterface) -> None:
-    global _reservation_client
-    _reservation_client = client
+def get_reservation_client(request: Request) -> ReservationClientInterface:
+    return request.state.reservation_client
 
 
 @router.get("/dashboard", response_model=DashboardResponse)

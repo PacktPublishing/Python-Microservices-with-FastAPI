@@ -4,10 +4,9 @@ from fastapi.responses import HTMLResponse
 
 router = APIRouter()
 
-SERVICE_MAP = {
-    "portal": "http://localhost:8002",
-    "reservations": "http://localhost:8003",
-}
+
+def get_service_url(request: Request, service: str) -> str:
+    return request.app.state.service_urls[service]
 
 
 async def proxy_request(
@@ -40,7 +39,9 @@ async def proxy_request(
                 content=body if body else None,
             )
         except httpx.RequestError as e:
-            raise HTTPException(status_code=503, detail=f"Service unavailable: {e}")
+            raise HTTPException(
+                status_code=503, detail=f"Service unavailable: {e}"
+            )
 
         # Determine response class based on content type
         content_type = response.headers.get("content-type", "")
@@ -54,11 +55,15 @@ async def proxy_request(
 
 
 # Portal proxy routes
-@router.get("/portal/home/{lang}", response_class=HTMLResponse, tags=["Portal Proxy"])
+@router.get(
+    "/portal/home/{lang}",
+    response_class=HTMLResponse,
+    tags=["Portal Proxy"],
+)
 async def proxy_portal_home(lang: str, request: Request):
     """Proxy to portal home page with language selection."""
     return await proxy_request(
-        SERVICE_MAP["portal"],
+        get_service_url(request, "portal"),
         f"/home/{lang}",
         request,
     )
@@ -68,7 +73,7 @@ async def proxy_portal_home(lang: str, request: Request):
 async def proxy_portal(path: str, request: Request):
     """Proxy all other portal requests."""
     return await proxy_request(
-        SERVICE_MAP["portal"],
+        get_service_url(request, "portal"),
         f"/{path}" if path else "/",
         request,
     )
@@ -79,7 +84,7 @@ async def proxy_portal(path: str, request: Request):
 async def proxy_list_slots(request: Request):
     """Proxy to list available slots."""
     return await proxy_request(
-        SERVICE_MAP["reservations"],
+        get_service_url(request, "reservations"),
         "/api/v1/slots",
         request,
     )
@@ -89,37 +94,43 @@ async def proxy_list_slots(request: Request):
 async def proxy_create_slot(request: Request):
     """Proxy to create a new slot."""
     return await proxy_request(
-        SERVICE_MAP["reservations"],
+        get_service_url(request, "reservations"),
         "/api/v1/slots",
         request,
     )
 
 
-@router.post("/reservations/slots/{slot_id}/reserve", tags=["Reservations Proxy"])
+@router.post(
+    "/reservations/slots/{slot_id}/reserve", tags=["Reservations Proxy"]
+)
 async def proxy_reserve_slot(slot_id: str, request: Request):
     """Proxy to reserve a slot."""
     return await proxy_request(
-        SERVICE_MAP["reservations"],
+        get_service_url(request, "reservations"),
         f"/api/v1/slots/{slot_id}/reserve",
         request,
     )
 
 
-@router.post("/reservations/slots/{slot_id}/confirm", tags=["Reservations Proxy"])
+@router.post(
+    "/reservations/slots/{slot_id}/confirm", tags=["Reservations Proxy"]
+)
 async def proxy_confirm_reservation(slot_id: str, request: Request):
     """Proxy to confirm a reservation."""
     return await proxy_request(
-        SERVICE_MAP["reservations"],
+        get_service_url(request, "reservations"),
         f"/api/v1/slots/{slot_id}/confirm",
         request,
     )
 
 
-@router.post("/reservations/slots/{slot_id}/refuse", tags=["Reservations Proxy"])
+@router.post(
+    "/reservations/slots/{slot_id}/refuse", tags=["Reservations Proxy"]
+)
 async def proxy_refuse_reservation(slot_id: str, request: Request):
     """Proxy to refuse a reservation."""
     return await proxy_request(
-        SERVICE_MAP["reservations"],
+        get_service_url(request, "reservations"),
         f"/api/v1/slots/{slot_id}/refuse",
         request,
     )
