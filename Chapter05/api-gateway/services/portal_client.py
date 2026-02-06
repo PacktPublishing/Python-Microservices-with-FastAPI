@@ -8,21 +8,25 @@ Lang = Literal["en", "fr", "it", "pt"]
 
 class PortalClientInterface(ABC):
     @abstractmethod
-    async def get_home(self, lang: Lang = "en", name: str = "") -> str:
+    async def get_home(
+        self, lang: Lang = "en", name: str = ""
+    ) -> str:
         """Get the home page content for a given language."""
-        ...
+        pass
 
     @abstractmethod
     async def health_check(self) -> bool:
         """Check if the portal service is healthy."""
-        ...
+        pass
 
 
 class PortalClient(PortalClientInterface):
     def __init__(self, base_url: str = "http://localhost:8002"):
         self.base_url = base_url
 
-    async def get_home(self, lang: Lang = "en", name: str = "") -> str:
+    async def get_home(
+        self, lang: Lang = "en", name: str = ""
+    ) -> str:
         async with httpx.AsyncClient() as client:
             params = {"name": name} if name else {}
             response = await client.get(
@@ -51,10 +55,16 @@ class MockPortalClient(PortalClientInterface):
         }
         self.is_healthy = True
 
-    async def get_home(self, lang: Lang = "en", name: str = "") -> str:
-        base_content = self.home_pages.get(lang, self.home_pages["en"])
+    async def get_home(
+        self, lang: Lang = "en", name: str = ""
+    ) -> str:
+        base_content = self.home_pages.get(
+            lang, self.home_pages["en"]
+        )
         if name:
-            return base_content.replace("</h1>", f", {name}!</h1>")
+            return base_content.replace(
+                "</h1>", f", {name}!</h1>"
+            )
         return base_content
 
     async def health_check(self) -> bool:

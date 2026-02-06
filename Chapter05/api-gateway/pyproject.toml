@@ -8,6 +8,8 @@ dependencies = [
     "fastapi[standard]>=0.128.0",
     "httpx>=0.28.1",
     "pydantic[email]>=2.12.5",
+    "dependency-injector>=4.45.0",
+    "pyyaml>=6.0.0",
 ]
 
 [dependency-groups]
@@ -16,6 +18,7 @@ dev = [
     "ty>=0.0.14",
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
 ]
 
 [tool.ruff]

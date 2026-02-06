@@ -4,9 +4,13 @@ from typing import TypedDict
 
 from fastapi import FastAPI
 
+from container import Container
 from middleware import RateLimiter, RateLimitMiddleware
 from routers import aggregation_router, proxy_router
-from services import PortalClient, ReservationClient, PortalClientInterface, ReservationClientInterface
+from services import (
+    PortalClientInterface,
+    ReservationClientInterface,
+)
 
 SERVICE_URLS = {
     "portal": "",
@@ -15,16 +19,19 @@ SERVICE_URLS = {
 
 
 class State(TypedDict):
-    portal_client : PortalClientInterface
+    portal_client: PortalClientInterface
     reservation_client: ReservationClientInterface
+
+
+container = Container()
+container.config.from_yaml("config.yaml")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[State]:
-    # Startup: Initialize service clients
-    portal_client = PortalClient(base_url="http://localhost:8002")
-    reservation_client = ReservationClient(
-        base_url="http://localhost:8003"
-    )
+    # Startup: Initialize service clients from container
+    portal_client = container.portal_client()
+    reservation_client = container.reservation_client()
 
     yield {
         "portal_client": portal_client,
@@ -42,10 +49,12 @@ API Gateway demonstrating aggregation patterns and rate limiting.
 
 ## Features
 
-### Proxy Routes
-Pass-through routes that forward requests to downstream services:
-- `/portal/*` - Portal service (language-aware home pages)
-- `/reservations/*` - Reservation service (slot management)
+### Portal Routes
+- `/portal/home/{lang}` - Get language-aware home page
+
+### Reservation Routes
+- `/reservations/slots` - Get all reservations with optional filtering
+- `/reservations/slots/{slot_id}/reserve` - Reserve a slot
 
 ### Aggregation Routes
 Composite endpoints that combine data from multiple services:
@@ -84,12 +93,12 @@ rate_limiter.add_rule(
 
 # Read tier - GET operations on reservations
 rate_limiter.add_rule(
-    path_matcher=lambda p: p.startswith("/reservations") and "/slots" in p,
+    path_matcher=lambda p: p.startswith("/reservations")
+    and "/slots" in p,
     requests_per_minute=60,
     burst_size=80,
 )
 
-# Write tier - POST operations (lowest limit for mutations)
 rate_limiter.add_rule(
     path_matcher=lambda p: "/reserve" in p
     or "/confirm" in p
@@ -99,7 +108,10 @@ rate_limiter.add_rule(
 )
 
 # Add rate limiting middleware
-app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
+app.add_middleware(
+    RateLimitMiddleware,  # type: ignore[arg-type]
+    rate_limiter=rate_limiter,
+)
 
 # Include routers
 app.include_router(proxy_router)
@@ -113,7 +125,11 @@ async def root():
         "docs": "/docs",
         "services": SERVICE_URLS,
         "endpoints": {
-            "proxy": ["/portal/*", "/reservations/*"],
+            "portal": ["/portal/home/{lang}"],
+            "reservations": [
+                "/reservations/slots",
+                "/reservations/slots/{slot_id}/reserve",
+            ],
             "aggregation": [
                 "/aggregate/dashboard",
                 "/aggregate/availability-summary",

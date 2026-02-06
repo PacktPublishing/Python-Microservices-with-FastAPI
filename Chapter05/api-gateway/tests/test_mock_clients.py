@@ -1,7 +1,6 @@
-import pytest
 from uuid import uuid4
 
-from services import MockPortalClient, MockReservationClient
+import pytest
 
 
 class TestMockPortalClient:
@@ -32,14 +31,20 @@ class TestMockPortalClient:
         assert "Bem-vindo ao Serviço de Babá" in content
 
     @pytest.mark.asyncio
-    async def test_get_home_with_name_personalization(self, mock_portal_client):
+    async def test_get_home_with_name_personalization(
+        self, mock_portal_client
+    ):
         """Test home page personalization with name."""
-        content = await mock_portal_client.get_home(lang="en", name="John")
+        content = await mock_portal_client.get_home(
+            lang="en", name="John"
+        )
         assert "John" in content
         assert "Welcome to Babysitting Service" in content
 
     @pytest.mark.asyncio
-    async def test_get_home_default_language(self, mock_portal_client):
+    async def test_get_home_default_language(
+        self, mock_portal_client
+    ):
         """Test default language is English."""
         content = await mock_portal_client.get_home()
         assert "Welcome to Babysitting Service" in content
@@ -52,7 +57,9 @@ class TestMockPortalClient:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_health_check_unhealthy(self, mock_portal_client):
+    async def test_health_check_unhealthy(
+        self, mock_portal_client
+    ):
         """Test health check when unhealthy."""
         mock_portal_client.is_healthy = False
         result = await mock_portal_client.health_check()
@@ -63,7 +70,9 @@ class TestMockReservationClient:
     """Tests for MockReservationClient."""
 
     @pytest.mark.asyncio
-    async def test_list_slots_empty(self, mock_reservation_client):
+    async def test_list_slots_empty(
+        self, mock_reservation_client
+    ):
         """Test listing slots when empty."""
         slots = await mock_reservation_client.list_slots()
         assert slots == []
@@ -73,7 +82,9 @@ class TestMockReservationClient:
         self, mock_reservation_client_with_slots
     ):
         """Test listing all slots."""
-        slots = await mock_reservation_client_with_slots.list_slots()
+        slots = (
+            await mock_reservation_client_with_slots.list_slots()
+        )
         assert len(slots) == 5
 
     @pytest.mark.asyncio
@@ -81,8 +92,10 @@ class TestMockReservationClient:
         self, mock_reservation_client_with_slots
     ):
         """Test filtering slots by week day."""
-        slots = await mock_reservation_client_with_slots.list_slots(
-            week_day="monday"
+        slots = (
+            await mock_reservation_client_with_slots.list_slots(
+                week_day="monday"
+            )
         )
         assert len(slots) == 2
         for slot in slots:
@@ -93,8 +106,10 @@ class TestMockReservationClient:
         self, mock_reservation_client_with_slots
     ):
         """Test filtering slots by time slot."""
-        slots = await mock_reservation_client_with_slots.list_slots(
-            time_slot="morning"
+        slots = (
+            await mock_reservation_client_with_slots.list_slots(
+                time_slot="morning"
+            )
         )
         assert len(slots) == 2
         for slot in slots:
@@ -105,9 +120,11 @@ class TestMockReservationClient:
         self, mock_reservation_client_with_slots
     ):
         """Test filtering slots by both week day and time slot."""
-        slots = await mock_reservation_client_with_slots.list_slots(
-            week_day="monday",
-            time_slot="morning",
+        slots = (
+            await mock_reservation_client_with_slots.list_slots(
+                week_day="monday",
+                time_slot="morning",
+            )
         )
         assert len(slots) == 1
         assert slots[0]["week_day"] == "monday"
@@ -118,8 +135,10 @@ class TestMockReservationClient:
         self, mock_reservation_client_with_slots
     ):
         """Test filtering with no matching slots."""
-        slots = await mock_reservation_client_with_slots.list_slots(
-            week_day="sunday"
+        slots = (
+            await mock_reservation_client_with_slots.list_slots(
+                week_day="sunday"
+            )
         )
         assert slots == []
 
@@ -135,18 +154,24 @@ class TestMockReservationClient:
             if slot["status"] == "available"
         )
 
-        result = await mock_reservation_client_with_slots.reserve_slot(
-            slot_id=available_slot_id,
-            parent_email="parent@example.com",
-            description="Need babysitter for dinner",
+        result = (
+            await mock_reservation_client_with_slots.reserve_slot(
+                slot_id=available_slot_id,
+                parent_email="parent@example.com",
+                description="Need babysitter for dinner",
+            )
         )
 
         assert result["status"] == "pending"
         assert result["parent_email"] == "parent@example.com"
-        assert result["description"] == "Need babysitter for dinner"
+        assert (
+            result["description"] == "Need babysitter for dinner"
+        )
 
     @pytest.mark.asyncio
-    async def test_reserve_slot_not_found(self, mock_reservation_client):
+    async def test_reserve_slot_not_found(
+        self, mock_reservation_client
+    ):
         """Test reserving non-existent slot."""
         with pytest.raises(ValueError, match="not found"):
             await mock_reservation_client.reserve_slot(
@@ -184,29 +209,37 @@ class TestMockReservationClient:
             if slot["status"] == "available"
         )
 
-        result = await mock_reservation_client_with_slots.reserve_slot(
-            slot_id=available_slot_id,
-            parent_email="parent@example.com",
+        result = (
+            await mock_reservation_client_with_slots.reserve_slot(
+                slot_id=available_slot_id,
+                parent_email="parent@example.com",
+            )
         )
 
         assert result["description"] == ""
 
     @pytest.mark.asyncio
-    async def test_health_check_healthy(self, mock_reservation_client):
+    async def test_health_check_healthy(
+        self, mock_reservation_client
+    ):
         """Test health check when healthy."""
         assert mock_reservation_client.is_healthy is True
         result = await mock_reservation_client.health_check()
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_health_check_unhealthy(self, mock_reservation_client):
+    async def test_health_check_unhealthy(
+        self, mock_reservation_client
+    ):
         """Test health check when unhealthy."""
         mock_reservation_client.is_healthy = False
         result = await mock_reservation_client.health_check()
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_slot_state_mutation(self, mock_reservation_client):
+    async def test_slot_state_mutation(
+        self, mock_reservation_client
+    ):
         """Test that reserving a slot mutates its state."""
         slot_id = uuid4()
         mock_reservation_client.slots[slot_id] = {
@@ -224,7 +257,10 @@ class TestMockReservationClient:
         )
 
         # Verify state changed
-        assert mock_reservation_client.slots[slot_id]["status"] == "pending"
+        assert (
+            mock_reservation_client.slots[slot_id]["status"]
+            == "pending"
+        )
 
         # Cannot reserve again
         with pytest.raises(ValueError, match="not available"):

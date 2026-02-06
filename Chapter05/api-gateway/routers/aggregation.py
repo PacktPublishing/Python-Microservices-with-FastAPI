@@ -1,6 +1,5 @@
 import asyncio
 from typing import Literal
-from uuid import UUID
 
 from fastapi import (
     APIRouter,
@@ -9,7 +8,7 @@ from fastapi import (
     Query,
     Request,
 )
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 from services import (
     PortalClientInterface,
@@ -44,19 +43,6 @@ class AvailabilitySummary(BaseModel):
     slots: list[dict]
 
 
-class QuickReserveRequest(BaseModel):
-    week_day: WeekDay
-    time_slot: TimeSlot
-    babysitter_name: str
-    parent_email: EmailStr
-    description: str = ""
-
-
-class QuickReserveResponse(BaseModel):
-    slot: dict
-    message: str
-
-
 class HealthStatusResponse(BaseModel):
     gateway: str
     portal_service: bool
@@ -68,7 +54,9 @@ def get_portal_client(request: Request) -> PortalClientInterface:
     return request.state.portal_client
 
 
-def get_reservation_client(request: Request) -> ReservationClientInterface:
+def get_reservation_client(
+    request: Request,
+) -> ReservationClientInterface:
     return request.state.reservation_client
 
 
@@ -77,8 +65,12 @@ async def get_dashboard(
     lang: Lang = Query(
         default="en", description="Language for welcome message"
     ),
-    name: str = Query(default="", description="Name for personalized greeting"),
-    portal_client: PortalClientInterface = Depends(get_portal_client),
+    name: str = Query(
+        default="", description="Name for personalized greeting"
+    ),
+    portal_client: PortalClientInterface = Depends(
+        get_portal_client
+    ),
     reservation_client: ReservationClientInterface = Depends(
         get_reservation_client
     ),
@@ -106,12 +98,16 @@ async def get_dashboard(
 
     # Handle individual service failures gracefully
     if isinstance(welcome_content, Exception):
-        welcome_content = "<p>Welcome service temporarily unavailable</p>"
+        welcome_content = (
+            "<p>Welcome service temporarily unavailable</p>"
+        )
     if isinstance(slots, Exception):
         slots = []
 
     # Filter to only available slots
-    available_slots = [s for s in slots if s.get("status") == "available"]
+    available_slots = [
+        s for s in slots if s.get("status") == "available"
+    ]
 
     return DashboardResponse(
         welcome_content=welcome_content,
@@ -120,7 +116,9 @@ async def get_dashboard(
     )
 
 
-@router.get("/availability-summary", response_model=AvailabilitySummary)
+@router.get(
+    "/availability-summary", response_model=AvailabilitySummary
+)
 async def get_availability_summary(
     week_day: WeekDay | None = Query(
         default=None, description="Filter by day"
@@ -145,11 +143,14 @@ async def get_availability_summary(
         )
     except Exception as e:
         raise HTTPException(
-            status_code=503, detail=f"Reservation service error: {e}"
+            status_code=503,
+            detail=f"Reservation service error: {e}",
         )
 
     # Only count available slots
-    available_slots = [s for s in slots if s.get("status") == "available"]
+    available_slots = [
+        s for s in slots if s.get("status") == "available"
+    ]
 
     # Aggregate by day
     by_day: dict[str, int] = {}
@@ -171,55 +172,11 @@ async def get_availability_summary(
     )
 
 
-@router.post("/quick-reserve", response_model=QuickReserveResponse)
-async def quick_reserve(
-    request: QuickReserveRequest,
-    reservation_client: ReservationClientInterface = Depends(
-        get_reservation_client
-    ),
-):
-    """
-    Orchestrated operation: create a slot and reserve it in one call.
-
-    This endpoint demonstrates the orchestration pattern where the
-    gateway coordinates multiple sequential operations across services.
-    """
-    # Step 1: Create the slot
-    try:
-        slot = await reservation_client.create_slot(
-            week_day=request.week_day,
-            time_slot=request.time_slot,
-            babysitter_name=request.babysitter_name,
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Failed to create slot: {e}",
-        )
-
-    # Step 2: Reserve the newly created slot
-    try:
-        reserved_slot = await reservation_client.reserve_slot(
-            slot_id=UUID(slot["id"]),
-            parent_email=request.parent_email,
-            description=request.description,
-        )
-    except Exception as e:
-        # Note: In a real system, you might want to rollback the slot creation
-        raise HTTPException(
-            status_code=503,
-            detail=f"Slot created but reservation failed: {e}",
-        )
-
-    return QuickReserveResponse(
-        slot=reserved_slot,
-        message=f"Slot created and reserved for {request.parent_email}",
-    )
-
-
 @router.get("/health", response_model=HealthStatusResponse)
 async def aggregated_health(
-    portal_client: PortalClientInterface = Depends(get_portal_client),
+    portal_client: PortalClientInterface = Depends(
+        get_portal_client
+    ),
     reservation_client: ReservationClientInterface = Depends(
         get_reservation_client
     ),
