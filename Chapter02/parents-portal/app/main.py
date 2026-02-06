@@ -35,3 +35,17 @@ def root(lang: Lang, request: Request):
     return RedirectResponse(
         url=URL(path=f"/home/{lang}", query=request.url.query)
     )
+
+
+@app.get(
+    "/health",
+    summary="Health check",
+    description="Check if the API is running",
+    tags=["Health"],
+)
+def health_check():
+    """Simple health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "parents-portal-api",
+    }

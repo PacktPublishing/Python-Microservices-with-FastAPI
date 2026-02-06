@@ -1,11 +1,12 @@
-import pytest
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from uuid import uuid4
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from routers import aggregation_router
-from routers.aggregation import get_portal_client, get_reservation_client
 from services import MockPortalClient, MockReservationClient
 
 
@@ -71,18 +72,20 @@ def populated_reservation_client(mock_reservation_client):
 
 @pytest.fixture
 def client(mock_portal_client, populated_reservation_client):
-    """Create test client with mock clients using dependency overrides."""
-    app = FastAPI()
+    """Create test client with mock clients using lifespan."""
+
+    @asynccontextmanager
+    async def test_lifespan(app: FastAPI) -> AsyncIterator[dict]:
+        yield {
+            "portal_client": mock_portal_client,
+            "reservation_client": populated_reservation_client,
+        }
+
+    app = FastAPI(lifespan=test_lifespan)
     app.include_router(aggregation_router)
 
-    app.dependency_overrides[get_portal_client] = (
-        lambda: mock_portal_client
-    )
-    app.dependency_overrides[get_reservation_client] = (
-        lambda: populated_reservation_client
-    )
-
-    return TestClient(app)
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 class TestDashboardEndpoint:
@@ -95,7 +98,10 @@ class TestDashboardEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert "welcome_content" in data
-        assert "Welcome to Babysitting Service" in data["welcome_content"]
+        assert (
+            "Welcome to Babysitting Service"
+            in data["welcome_content"]
+        )
         assert "available_slots" in data
         assert "total_available" in data
 
@@ -105,7 +111,10 @@ class TestDashboardEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert "Bienvenue au Service de Garde" in data["welcome_content"]
+        assert (
+            "Bienvenue au Service de Garde"
+            in data["welcome_content"]
+        )
 
     def test_dashboard_with_name(self, client):
         """Test dashboard with personalized greeting."""
@@ -127,8 +136,12 @@ class TestDashboardEndpoint:
             assert slot["status"] == "available"
 
         # Total should match available count
-        assert data["total_available"] == len(data["available_slots"])
-        assert data["total_available"] == 4  # 4 available in fixture
+        assert data["total_available"] == len(
+            data["available_slots"]
+        )
+        assert (
+            data["total_available"] == 4
+        )  # 4 available in fixture
 
 
 class TestAvailabilitySummaryEndpoint:
@@ -144,6 +157,7 @@ class TestAvailabilitySummaryEndpoint:
         assert "total_slots" in data
         assert "by_day" in data
         assert "by_time" in data
+
         assert "slots" in data
 
         # Only available slots counted
@@ -158,7 +172,9 @@ class TestAvailabilitySummaryEndpoint:
 
         # Check by_day aggregation
         assert "monday" in data["by_day"]
-        assert data["by_day"]["monday"] == 2  # 2 available on Monday
+        assert (
+            data["by_day"]["monday"] == 2
+        )  # 2 available on Monday
 
     def test_availability_summary_by_time(self, client):
         """Test availability aggregation by time slot."""

@@ -14,7 +14,9 @@ WeekDay = Literal[
     "sunday",
 ]
 TimeSlot = Literal["morning", "afternoon", "night"]
-SlotStatus = Literal["available", "pending", "confirmed", "refused"]
+SlotStatus = Literal[
+    "available", "pending", "confirmed", "refused"
+]
 
 
 class ReservationClientInterface(ABC):
@@ -85,16 +87,61 @@ class ReservationClient(ReservationClientInterface):
     async def health_check(self) -> bool:
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get(f"{self.base_url}/health")
+                response = await client.get(
+                    f"{self.base_url}/health"
+                )
                 return response.status_code == 200
         except httpx.RequestError:
             return False
 
 
 class MockReservationClient(ReservationClientInterface):
-    def __init__(self):
-        self.slots: dict[UUID, dict] = {}
+    def __init__(self, prefill: bool = False):
         self.is_healthy = True
+        self.slots: dict[UUID, dict] = {}
+        if prefill:
+            self._prefill_slots()
+
+    def _prefill_slots(self):
+        """Prefill with sample slot data."""
+        slots_data = [
+            {
+                "week_day": "monday",
+                "time_slot": "morning",
+                "babysitter_name": "Alice",
+                "status": "available",
+            },
+            {
+                "week_day": "monday",
+                "time_slot": "afternoon",
+                "babysitter_name": "Bob",
+                "status": "available",
+            },
+            {
+                "week_day": "tuesday",
+                "time_slot": "morning",
+                "babysitter_name": "Charlie",
+                "status": "pending",
+            },
+            {
+                "week_day": "wednesday",
+                "time_slot": "night",
+                "babysitter_name": "Diana",
+                "status": "available",
+            },
+            {
+                "week_day": "friday",
+                "time_slot": "afternoon",
+                "babysitter_name": "Eve",
+                "status": "available",
+            },
+        ]
+        for slot_data in slots_data:
+            slot_id = uuid4()
+            self.slots[slot_id] = {
+                "id": str(slot_id),
+                **slot_data,
+            }
 
     async def list_slots(
         self,
@@ -103,9 +150,13 @@ class MockReservationClient(ReservationClientInterface):
     ) -> list[dict]:
         result = list(self.slots.values())
         if week_day:
-            result = [s for s in result if s["week_day"] == week_day]
+            result = [
+                s for s in result if s["week_day"] == week_day
+            ]
         if time_slot:
-            result = [s for s in result if s["time_slot"] == time_slot]
+            result = [
+                s for s in result if s["time_slot"] == time_slot
+            ]
         return result
 
     async def reserve_slot(

@@ -27,7 +27,9 @@ class TokenBucket:
 
     def __post_init__(self):
         self.tokens = float(self.capacity)
-        self.refill_rate = self.capacity / 60.0  # Convert from per-minute to per-second
+        self.refill_rate = (
+            self.capacity / 60.0
+        )  # Convert from per-minute to per-second
 
     def consume(self) -> bool:
         now = time.time()
@@ -35,7 +37,10 @@ class TokenBucket:
         self.last_update = now
 
         # Refill tokens based on elapsed time
-        self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)
+        self.tokens = min(
+            self.capacity,
+            self.tokens + elapsed * self.refill_rate,
+        )
 
         if self.tokens >= 1:
             self.tokens -= 1
@@ -52,8 +57,12 @@ class TokenBucket:
 class RateLimiter:
     def __init__(self):
         # Client buckets: client_id -> path_pattern -> TokenBucket
-        self.buckets: dict[str, dict[str, TokenBucket]] = defaultdict(dict)
-        self.rules: list[tuple[Callable[[str], bool], RateLimitRule]] = []
+        self.buckets: dict[str, dict[str, TokenBucket]] = (
+            defaultdict(dict)
+        )
+        self.rules: list[
+            tuple[Callable[[str], bool], RateLimitRule]
+        ] = []
 
     def add_rule(
         self,
@@ -75,7 +84,9 @@ class RateLimiter:
                 return rule
         return None
 
-    def is_allowed(self, client_id: str, path: str) -> tuple[bool, dict]:
+    def is_allowed(
+        self, client_id: str, path: str
+    ) -> tuple[bool, dict]:
         """
         Check if a request is allowed under rate limiting.
 
@@ -91,7 +102,8 @@ class RateLimiter:
         pattern_key = self._get_pattern_key(path)
         if pattern_key not in self.buckets[client_id]:
             self.buckets[client_id][pattern_key] = TokenBucket(
-                capacity=rule.burst_size or rule.requests_per_minute,
+                capacity=rule.burst_size
+                or rule.requests_per_minute,
             )
 
         bucket = self.buckets[client_id][pattern_key]
@@ -140,12 +152,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.rate_limiter = rate_limiter
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self, request: Request, call_next
+    ) -> Response:
         # Use client IP as identifier (in production, consider using API keys)
         client_id = self._get_client_id(request)
         path = request.url.path
 
-        allowed, headers = self.rate_limiter.is_allowed(client_id, path)
+        allowed, headers = self.rate_limiter.is_allowed(
+            client_id, path
+        )
 
         if not allowed:
             return JSONResponse(

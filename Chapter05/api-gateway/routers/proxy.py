@@ -1,136 +1,139 @@
-import httpx
-from fastapi import APIRouter, HTTPException, Request, Response
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+)
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel, EmailStr
+
+from services import (
+    Lang,
+    PortalClientInterface,
+    ReservationClientInterface,
+    TimeSlot,
+    WeekDay,
+)
 
 router = APIRouter()
 
 
-def get_service_url(request: Request, service: str) -> str:
-    return request.app.state.service_urls[service]
+def get_portal_client(request: Request) -> PortalClientInterface:
+    return request.state.portal_client
 
 
-async def proxy_request(
-    service_url: str,
-    path: str,
+def get_reservation_client(
     request: Request,
-) -> Response:
-    async with httpx.AsyncClient() as client:
-        url = f"{service_url}{path}"
-
-        # Forward query parameters
-        params = dict(request.query_params)
-
-        # Forward headers (excluding host)
-        headers = {
-            key: value
-            for key, value in request.headers.items()
-            if key.lower() not in ("host", "content-length")
-        }
-
-        # Get request body if present
-        body = await request.body()
-
-        try:
-            response = await client.request(
-                method=request.method,
-                url=url,
-                params=params,
-                headers=headers,
-                content=body if body else None,
-            )
-        except httpx.RequestError as e:
-            raise HTTPException(
-                status_code=503, detail=f"Service unavailable: {e}"
-            )
-
-        # Determine response class based on content type
-        content_type = response.headers.get("content-type", "")
-
-        return Response(
-            content=response.content,
-            status_code=response.status_code,
-            headers=dict(response.headers),
-            media_type=content_type,
-        )
+) -> ReservationClientInterface:
+    return request.state.reservation_client
 
 
-# Portal proxy routes
+class ReservationRequest(BaseModel):
+    parent_email: EmailStr
+    description: str = ""
+
+
+async def fetch_portal_home(
+    client: PortalClientInterface,
+    lang: Lang = "en",
+    name: str = "",
+) -> str:
+    """Fetch the portal home page for a given language."""
+    return await client.get_home(lang=lang, name=name)
+
+
+async def get_all_available_slots(
+    client: ReservationClientInterface,
+    week_day: WeekDay | None = None,
+    time_slot: TimeSlot | None = None,
+) -> list[dict]:
+    """Fetch all reservations with optional filtering."""
+    return await client.list_slots(
+        week_day=week_day, time_slot=time_slot
+    )
+
+
+async def make_reservation(
+    client: ReservationClientInterface,
+    slot_id: UUID,
+    parent_email: str,
+    description: str = "",
+) -> dict:
+    """Make a reservation for a slot."""
+    return await client.reserve_slot(
+        slot_id=slot_id,
+        parent_email=parent_email,
+        description=description,
+    )
+
+
 @router.get(
     "/portal/home/{lang}",
     response_class=HTMLResponse,
-    tags=["Portal Proxy"],
+    tags=["Portal"],
 )
-async def proxy_portal_home(lang: str, request: Request):
-    """Proxy to portal home page with language selection."""
-    return await proxy_request(
-        get_service_url(request, "portal"),
-        f"/home/{lang}",
-        request,
-    )
+async def get_portal_home_page(
+    lang: Lang,
+    name: str = "",
+    client: PortalClientInterface = Depends(get_portal_client),
+) -> str:
+    """Get the portal home page with language selection."""
+    try:
+        return await fetch_portal_home(
+            client, lang=lang, name=name
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=503, detail=f"Portal service error: {e}"
+        )
 
 
-@router.get("/portal/{path:path}", tags=["Portal Proxy"])
-async def proxy_portal(path: str, request: Request):
-    """Proxy all other portal requests."""
-    return await proxy_request(
-        get_service_url(request, "portal"),
-        f"/{path}" if path else "/",
-        request,
-    )
-
-
-# Reservation proxy routes
-@router.get("/reservations/slots", tags=["Reservations Proxy"])
-async def proxy_list_slots(request: Request):
-    """Proxy to list available slots."""
-    return await proxy_request(
-        get_service_url(request, "reservations"),
-        "/api/v1/slots",
-        request,
-    )
-
-
-@router.post("/reservations/slots", tags=["Reservations Proxy"])
-async def proxy_create_slot(request: Request):
-    """Proxy to create a new slot."""
-    return await proxy_request(
-        get_service_url(request, "reservations"),
-        "/api/v1/slots",
-        request,
-    )
+@router.get("/reservations/slots", tags=["Reservations"])
+async def get_all_reservations(
+    week_day: Annotated[WeekDay | None, Query()] = None,
+    time_slot: Annotated[TimeSlot | None, Query()] = None,
+    client: ReservationClientInterface = Depends(
+        get_reservation_client
+    ),
+) -> list[dict]:
+    """Get all reservations with optional filtering."""
+    try:
+        return await get_all_available_slots(
+            client, week_day=week_day, time_slot=time_slot
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Reservation service error: {e}",
+        )
 
 
 @router.post(
-    "/reservations/slots/{slot_id}/reserve", tags=["Reservations Proxy"]
+    "/reservations/slots/{slot_id}/reserve", tags=["Reservations"]
 )
-async def proxy_reserve_slot(slot_id: str, request: Request):
-    """Proxy to reserve a slot."""
-    return await proxy_request(
-        get_service_url(request, "reservations"),
-        f"/api/v1/slots/{slot_id}/reserve",
-        request,
-    )
-
-
-@router.post(
-    "/reservations/slots/{slot_id}/confirm", tags=["Reservations Proxy"]
-)
-async def proxy_confirm_reservation(slot_id: str, request: Request):
-    """Proxy to confirm a reservation."""
-    return await proxy_request(
-        get_service_url(request, "reservations"),
-        f"/api/v1/slots/{slot_id}/confirm",
-        request,
-    )
-
-
-@router.post(
-    "/reservations/slots/{slot_id}/refuse", tags=["Reservations Proxy"]
-)
-async def proxy_refuse_reservation(slot_id: str, request: Request):
-    """Proxy to refuse a reservation."""
-    return await proxy_request(
-        get_service_url(request, "reservations"),
-        f"/api/v1/slots/{slot_id}/refuse",
-        request,
-    )
+async def reserve_slot(
+    slot_id: UUID,
+    reservation: ReservationRequest,
+    client: ReservationClientInterface = Depends(
+        get_reservation_client
+    ),
+) -> dict:
+    """Reserve a slot."""
+    try:
+        return await make_reservation(
+            client,
+            slot_id=slot_id,
+            parent_email=reservation.parent_email,
+            description=reservation.description,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Reservation service error: {e}",
+        )
