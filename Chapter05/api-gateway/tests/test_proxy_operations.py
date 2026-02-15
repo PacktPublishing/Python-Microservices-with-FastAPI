@@ -3,8 +3,8 @@ from uuid import UUID, uuid4
 import pytest
 
 from routers.proxy import (
-    get_all_available_slots,
     fetch_portal_home,
+    get_all_available_slots,
     make_reservation,
 )
 from services import MockPortalClient, MockReservationClient
