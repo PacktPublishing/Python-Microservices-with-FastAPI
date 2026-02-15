@@ -21,13 +21,12 @@ SlotStatus = Literal[
 
 class ReservationClientInterface(ABC):
     @abstractmethod
-    async def list_slots(
+    async def list_available_slots(
         self,
         week_day: WeekDay | None = None,
         time_slot: TimeSlot | None = None,
     ) -> list[dict]:
         """List available slots with optional filtering."""
-        ...
 
     @abstractmethod
     async def reserve_slot(
@@ -37,68 +36,16 @@ class ReservationClientInterface(ABC):
         description: str = "",
     ) -> dict:
         """Reserve a slot for a parent."""
-        ...
 
     @abstractmethod
     async def health_check(self) -> bool:
         """Check if the reservation service is healthy."""
-        ...
-
-
-class ReservationClient(ReservationClientInterface):
-    def __init__(self, base_url: str = "http://localhost:8003"):
-        self.base_url = base_url
-
-    async def list_slots(
-        self,
-        week_day: WeekDay | None = None,
-        time_slot: TimeSlot | None = None,
-    ) -> list[dict]:
-        async with httpx.AsyncClient() as client:
-            params = {}
-            if week_day:
-                params["week_day"] = week_day
-            if time_slot:
-                params["time_slot"] = time_slot
-            response = await client.get(
-                f"{self.base_url}/api/v1/slots",
-                params=params,
-            )
-            response.raise_for_status()
-            return response.json()
-
-    async def reserve_slot(
-        self,
-        slot_id: UUID,
-        parent_email: str,
-        description: str = "",
-    ) -> dict:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.base_url}/api/v1/slots/{slot_id}/reserve",
-                json={
-                    "parent_email": parent_email,
-                    "description": description,
-                },
-            )
-            response.raise_for_status()
-            return response.json()
-
-    async def health_check(self) -> bool:
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{self.base_url}/health"
-                )
-                return response.status_code == 200
-        except httpx.RequestError:
-            return False
 
 
 class MockReservationClient(ReservationClientInterface):
     def __init__(self, prefill: bool = False):
-        self.is_healthy = True
         self.slots: dict[UUID, dict] = {}
+        self.is_healthy: bool = True
         if prefill:
             self._prefill_slots()
 
@@ -143,12 +90,17 @@ class MockReservationClient(ReservationClientInterface):
                 **slot_data,
             }
 
-    async def list_slots(
+    async def list_available_slots(
         self,
         week_day: WeekDay | None = None,
         time_slot: TimeSlot | None = None,
     ) -> list[dict]:
-        result = list(self.slots.values())
+        result = [
+            slot
+            for slot in self.slots.values()
+            if slot.get("status") == "available"
+        ]
+
         if week_day:
             result = [
                 s for s in result if s["week_day"] == week_day
@@ -177,3 +129,53 @@ class MockReservationClient(ReservationClientInterface):
 
     async def health_check(self) -> bool:
         return self.is_healthy
+
+
+class ReservationClient(ReservationClientInterface):
+    def __init__(self, base_url: str = "http://localhost:8003"):
+        self.base_url = base_url
+
+    async def list_available_slots(
+        self,
+        week_day: WeekDay | None = None,
+        time_slot: TimeSlot | None = None,
+    ) -> list[dict]:
+        async with httpx.AsyncClient() as client:
+            params = {}
+            if week_day:
+                params["week_day"] = week_day
+            if time_slot:
+                params["time_slot"] = time_slot
+            response = await client.get(
+                f"{self.base_url}/api/v1/slots",
+                params=params,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    async def reserve_slot(
+        self,
+        slot_id: UUID,
+        parent_email: str,
+        description: str = "",
+    ) -> dict:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.base_url}/api/v1/slots/{slot_id}/reserve",
+                json={
+                    "parent_email": parent_email,
+                    "description": description,
+                },
+            )
+            response.raise_for_status()
+            return response.json()
+
+    async def health_check(self) -> bool:
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.base_url}/health"
+                )
+                return response.status_code == 200
+        except httpx.RequestError:
+            return False

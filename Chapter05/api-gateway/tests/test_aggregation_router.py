@@ -88,62 +88,6 @@ def client(mock_portal_client, populated_reservation_client):
         yield test_client
 
 
-class TestDashboardEndpoint:
-    """Tests for GET /aggregate/dashboard."""
-
-    def test_dashboard_default_language(self, client):
-        """Test dashboard with default English language."""
-        response = client.get("/aggregate/dashboard")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "welcome_content" in data
-        assert (
-            "Welcome to Babysitting Service"
-            in data["welcome_content"]
-        )
-        assert "available_slots" in data
-        assert "total_available" in data
-
-    def test_dashboard_french_language(self, client):
-        """Test dashboard with French language."""
-        response = client.get("/aggregate/dashboard?lang=fr")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert (
-            "Bienvenue au Service de Garde"
-            in data["welcome_content"]
-        )
-
-    def test_dashboard_with_name(self, client):
-        """Test dashboard with personalized greeting."""
-        response = client.get("/aggregate/dashboard?name=John")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "John" in data["welcome_content"]
-
-    def test_dashboard_only_available_slots(self, client):
-        """Test dashboard returns only available slots."""
-        response = client.get("/aggregate/dashboard")
-
-        assert response.status_code == 200
-        data = response.json()
-
-        # Should only have available slots (not pending/confirmed)
-        for slot in data["available_slots"]:
-            assert slot["status"] == "available"
-
-        # Total should match available count
-        assert data["total_available"] == len(
-            data["available_slots"]
-        )
-        assert (
-            data["total_available"] == 4
-        )  # 4 available in fixture
-
-
 class TestAvailabilitySummaryEndpoint:
     """Tests for GET /aggregate/availability-summary."""
 

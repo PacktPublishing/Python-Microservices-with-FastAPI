@@ -1,16 +1,14 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    Query,
-    Request,
-)
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr
 
+from routers.dependencies import (
+    get_portal_client,
+    get_reservation_client,
+)
 from services import (
     Lang,
     PortalClientInterface,
@@ -20,16 +18,6 @@ from services import (
 )
 
 router = APIRouter()
-
-
-def get_portal_client(request: Request) -> PortalClientInterface:
-    return request.state.portal_client
-
-
-def get_reservation_client(
-    request: Request,
-) -> ReservationClientInterface:
-    return request.state.reservation_client
 
 
 class ReservationRequest(BaseModel):
@@ -52,7 +40,7 @@ async def get_all_available_slots(
     time_slot: TimeSlot | None = None,
 ) -> list[dict]:
     """Fetch all reservations with optional filtering."""
-    return await client.list_slots(
+    return await client.list_available_slots(
         week_day=week_day, time_slot=time_slot
     )
 
@@ -78,8 +66,8 @@ async def make_reservation(
 )
 async def get_portal_home_page(
     lang: Lang,
-    name: str = "",
-    client: PortalClientInterface = Depends(get_portal_client),
+    client: Annotated[PortalClientInterface, Depends(get_portal_client)],
+    name: Annotated[str,Body()]= "",
 ) -> str:
     """Get the portal home page with language selection."""
     try:
@@ -94,11 +82,11 @@ async def get_portal_home_page(
 
 @router.get("/reservations/slots", tags=["Reservations"])
 async def get_all_reservations(
+    client: Annotated[ReservationClientInterface , Depends(
+        get_reservation_client
+    )],
     week_day: Annotated[WeekDay | None, Query()] = None,
     time_slot: Annotated[TimeSlot | None, Query()] = None,
-    client: ReservationClientInterface = Depends(
-        get_reservation_client
-    ),
 ) -> list[dict]:
     """Get all reservations with optional filtering."""
     try:
@@ -118,9 +106,9 @@ async def get_all_reservations(
 async def reserve_slot(
     slot_id: UUID,
     reservation: ReservationRequest,
-    client: ReservationClientInterface = Depends(
+    client: Annotated[ReservationClientInterface, Depends(
         get_reservation_client
-    ),
+    )],
 ) -> dict:
     """Reserve a slot."""
     try:

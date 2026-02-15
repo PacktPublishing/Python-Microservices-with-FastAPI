@@ -58,9 +58,7 @@ API Gateway demonstrating aggregation patterns and rate limiting.
 
 ### Aggregation Routes
 Composite endpoints that combine data from multiple services:
-- `/aggregate/dashboard` - Combined welcome message and availability
 - `/aggregate/availability-summary` - Slot statistics and groupings
-- `/aggregate/quick-reserve` - Orchestrated slot creation and reservation
 - `/aggregate/health` - Aggregated health status of all services
 
 ### Rate Limiting
@@ -131,9 +129,7 @@ async def root():
                 "/reservations/slots/{slot_id}/reserve",
             ],
             "aggregation": [
-                "/aggregate/dashboard",
                 "/aggregate/availability-summary",
-                "/aggregate/quick-reserve",
                 "/aggregate/health",
             ],
         },

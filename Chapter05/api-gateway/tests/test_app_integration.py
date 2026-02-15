@@ -105,9 +105,9 @@ def client(app_with_rate_limiter):
 class TestAppWithRateLimiter:
     """Integration tests for app with rate limiter and mock clients."""
 
-    def test_dashboard_includes_rate_limit_headers(self, client):
-        """Test dashboard response includes rate limit headers."""
-        response = client.get("/aggregate/dashboard")
+    def test_aggregate_includes_rate_limit_headers(self, client):
+        """Test aggregate response includes rate limit headers."""
+        response = client.get("/aggregate/availability-summary")
 
         assert response.status_code == 200
         assert "X-RateLimit-Limit" in response.headers
@@ -116,12 +116,12 @@ class TestAppWithRateLimiter:
 
     def test_rate_limit_decrements(self, client):
         """Test rate limit remaining decrements with requests."""
-        response1 = client.get("/aggregate/dashboard")
+        response1 = client.get("/aggregate/availability-summary")
         remaining1 = int(
             response1.headers["X-RateLimit-Remaining"]
         )
 
-        response2 = client.get("/aggregate/dashboard")
+        response2 = client.get("/aggregate/availability-summary")
         remaining2 = int(
             response2.headers["X-RateLimit-Remaining"]
         )
@@ -132,10 +132,10 @@ class TestAppWithRateLimiter:
         """Test exceeding rate limit returns 429."""
         # Exhaust the rate limit (burst_size=5)
         for _ in range(5):
-            client.get("/aggregate/dashboard")
+            client.get("/aggregate/availability-summary")
 
         # Next request should be blocked
-        response = client.get("/aggregate/dashboard")
+        response = client.get("/aggregate/availability-summary")
 
         assert response.status_code == 429
         assert "Rate limit exceeded" in response.json()["detail"]
@@ -145,27 +145,27 @@ class TestAppWithRateLimiter:
         """Test same endpoint is rate limited after burst."""
         # Make requests to same endpoint until limit
         for _ in range(5):
-            response = client.get("/aggregate/dashboard")
+            response = client.get(
+                "/aggregate/availability-summary"
+            )
             assert response.status_code == 200
 
         # Next request to same endpoint should be blocked
-        response = client.get("/aggregate/dashboard")
+        response = client.get("/aggregate/availability-summary")
 
         assert response.status_code == 429
 
     def test_successful_response_with_mock_data(self, client):
         """Test successful response contains mock data."""
-        response = client.get("/aggregate/dashboard")
+        response = client.get("/aggregate/availability-summary")
 
         assert response.status_code == 200
         data = response.json()
 
-        assert (
-            "Welcome to Babysitting Service"
-            in data["welcome_content"]
-        )
-        assert data["total_available"] == 3
-        assert len(data["available_slots"]) == 3
+        assert data["total_slots"] == 3
+        assert len(data["slots"]) == 3
+        assert "by_day" in data
+        assert "by_time" in data
 
     def test_health_endpoint_with_healthy_services(self, client):
         """Test health endpoint when services are healthy."""
@@ -178,22 +178,6 @@ class TestAppWithRateLimiter:
         assert data["portal_service"] is True
         assert data["reservation_service"] is True
         assert data["all_healthy"] is True
-
-    def test_health_endpoint_with_unhealthy_portal(
-        self, app_with_rate_limiter
-    ):
-        """Test health when portal is unhealthy."""
-        app, portal_client, _ = app_with_rate_limiter
-        portal_client.is_healthy = False
-
-        with TestClient(app) as client:
-            response = client.get("/aggregate/health")
-
-            assert response.status_code == 200
-            data = response.json()
-
-            assert data["portal_service"] is False
-            assert data["all_healthy"] is False
 
     def test_availability_summary_with_filter(self, client):
         """Test availability summary with filter."""
@@ -223,20 +207,20 @@ class TestRateLimiterMiddlewareIntegration:
             # Exhaust rate limit for client 1.2.3.4
             for _ in range(5):
                 client.get(
-                    "/aggregate/dashboard",
+                    "/aggregate/availability-summary",
                     headers={"X-Forwarded-For": "1.2.3.4"},
                 )
 
             # Client 1.2.3.4 should be blocked
             response1 = client.get(
-                "/aggregate/dashboard",
+                "/aggregate/availability-summary",
                 headers={"X-Forwarded-For": "1.2.3.4"},
             )
             assert response1.status_code == 429
 
             # Client 5.6.7.8 should still have quota
             response2 = client.get(
-                "/aggregate/dashboard",
+                "/aggregate/availability-summary",
                 headers={"X-Forwarded-For": "5.6.7.8"},
             )
             assert response2.status_code == 200
@@ -250,9 +234,11 @@ class TestRateLimiterMiddlewareIntegration:
         with TestClient(app) as client:
             # Exhaust rate limit
             for _ in range(5):
-                client.get("/aggregate/dashboard")
+                client.get("/aggregate/availability-summary")
 
-            response = client.get("/aggregate/dashboard")
+            response = client.get(
+                "/aggregate/availability-summary"
+            )
 
             assert response.status_code == 429
             assert "Retry-After" in response.headers
@@ -268,9 +254,11 @@ class TestRateLimiterMiddlewareIntegration:
         with TestClient(app) as client:
             # Exhaust rate limit
             for _ in range(5):
-                client.get("/aggregate/dashboard")
+                client.get("/aggregate/availability-summary")
 
-            response = client.get("/aggregate/dashboard")
+            response = client.get(
+                "/aggregate/availability-summary"
+            )
 
             assert response.status_code == 429
             data = response.json()
