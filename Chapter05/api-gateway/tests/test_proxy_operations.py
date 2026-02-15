@@ -66,7 +66,7 @@ class TestFetchAllReservations:
     async def test_fetch_all_reservations_with_slots(self):
         client = MockReservationClient(prefill=True)
         result = await get_all_available_slots(client)
-        assert len(result) == 5
+        assert len(result) == 4
 
     @pytest.mark.asyncio
     async def test_fetch_all_reservations_filter_by_week_day(
@@ -88,7 +88,7 @@ class TestFetchAllReservations:
         result = await get_all_available_slots(
             client, time_slot="morning"
         )
-        assert len(result) == 2
+        assert len(result) == 1
         for slot in result:
             assert slot["time_slot"] == "morning"
 
@@ -117,7 +117,7 @@ class TestMakeReservation:
     @pytest.mark.asyncio
     async def test_make_reservation_success(self):
         client = MockReservationClient(prefill=True)
-        slots = await client.list_slots()
+        slots = await client.list_available_slots()
         available_slot = next(
             s for s in slots if s["status"] == "available"
         )
@@ -152,7 +152,7 @@ class TestMakeReservation:
     @pytest.mark.asyncio
     async def test_make_reservation_slot_not_available(self):
         client = MockReservationClient(prefill=True)
-        slots = await client.list_slots()
+        slots = client.slots.values()
         pending_slot = next(
             s for s in slots if s["status"] == "pending"
         )
@@ -168,7 +168,7 @@ class TestMakeReservation:
     @pytest.mark.asyncio
     async def test_make_reservation_without_description(self):
         client = MockReservationClient(prefill=True)
-        slots = await client.list_slots()
+        slots = await client.list_available_slots()
         available_slot = next(
             s for s in slots if s["status"] == "available"
         )
@@ -187,7 +187,7 @@ class TestMakeReservation:
     @pytest.mark.asyncio
     async def test_make_reservation_changes_slot_status(self):
         client = MockReservationClient(prefill=True)
-        slots = await client.list_slots()
+        slots = await client.list_available_slots()
         available_slot = next(
             s for s in slots if s["status"] == "available"
         )
@@ -200,7 +200,7 @@ class TestMakeReservation:
         )
 
         # Verify slot status changed
-        updated_slots = await client.list_slots()
+        updated_slots = client.slots.values()
         updated_slot = next(
             s for s in updated_slots if s["id"] == str(slot_id)
         )

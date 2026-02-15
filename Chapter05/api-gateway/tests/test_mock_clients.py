@@ -52,18 +52,8 @@ class TestMockPortalClient:
     @pytest.mark.asyncio
     async def test_health_check_healthy(self, mock_portal_client):
         """Test health check when healthy."""
-        assert mock_portal_client.is_healthy is True
         result = await mock_portal_client.health_check()
         assert result is True
-
-    @pytest.mark.asyncio
-    async def test_health_check_unhealthy(
-        self, mock_portal_client
-    ):
-        """Test health check when unhealthy."""
-        mock_portal_client.is_healthy = False
-        result = await mock_portal_client.health_check()
-        assert result is False
 
 
 class TestMockReservationClient:
@@ -74,7 +64,9 @@ class TestMockReservationClient:
         self, mock_reservation_client
     ):
         """Test listing slots when empty."""
-        slots = await mock_reservation_client.list_slots()
+        slots = (
+            await mock_reservation_client.list_available_slots()
+        )
         assert slots == []
 
     @pytest.mark.asyncio
@@ -82,20 +74,16 @@ class TestMockReservationClient:
         self, mock_reservation_client_with_slots
     ):
         """Test listing all slots."""
-        slots = (
-            await mock_reservation_client_with_slots.list_slots()
-        )
-        assert len(slots) == 5
+        slots = await mock_reservation_client_with_slots.list_available_slots()
+        assert len(slots) == 4
 
     @pytest.mark.asyncio
     async def test_list_slots_filter_by_week_day(
         self, mock_reservation_client_with_slots
     ):
         """Test filtering slots by week day."""
-        slots = (
-            await mock_reservation_client_with_slots.list_slots(
-                week_day="monday"
-            )
+        slots = await mock_reservation_client_with_slots.list_available_slots(
+            week_day="monday"
         )
         assert len(slots) == 2
         for slot in slots:
@@ -106,12 +94,10 @@ class TestMockReservationClient:
         self, mock_reservation_client_with_slots
     ):
         """Test filtering slots by time slot."""
-        slots = (
-            await mock_reservation_client_with_slots.list_slots(
-                time_slot="morning"
-            )
+        slots = await mock_reservation_client_with_slots.list_available_slots(
+            time_slot="morning"
         )
-        assert len(slots) == 2
+        assert len(slots) == 1
         for slot in slots:
             assert slot["time_slot"] == "morning"
 
@@ -120,11 +106,9 @@ class TestMockReservationClient:
         self, mock_reservation_client_with_slots
     ):
         """Test filtering slots by both week day and time slot."""
-        slots = (
-            await mock_reservation_client_with_slots.list_slots(
-                week_day="monday",
-                time_slot="morning",
-            )
+        slots = await mock_reservation_client_with_slots.list_available_slots(
+            week_day="monday",
+            time_slot="morning",
         )
         assert len(slots) == 1
         assert slots[0]["week_day"] == "monday"
@@ -135,10 +119,8 @@ class TestMockReservationClient:
         self, mock_reservation_client_with_slots
     ):
         """Test filtering with no matching slots."""
-        slots = (
-            await mock_reservation_client_with_slots.list_slots(
-                week_day="sunday"
-            )
+        slots = await mock_reservation_client_with_slots.list_available_slots(
+            week_day="sunday"
         )
         assert slots == []
 

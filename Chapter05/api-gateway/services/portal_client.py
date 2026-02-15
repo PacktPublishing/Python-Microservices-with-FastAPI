@@ -12,12 +12,36 @@ class PortalClientInterface(ABC):
         self, lang: Lang = "en", name: str = ""
     ) -> str:
         """Get the home page content for a given language."""
-        pass
 
     @abstractmethod
     async def health_check(self) -> bool:
         """Check if the portal service is healthy."""
-        pass
+
+
+class MockPortalClient(PortalClientInterface):
+    def __init__(self):
+        self.home_pages: dict[Lang, str] = {
+            "en": "<h1>Welcome to Babysitting Service</h1>",
+            "fr": "<h1>Bienvenue au Service de Garde</h1>",
+            "it": "<h1>Benvenuti al Servizio di Babysitting</h1>",
+            "pt": "<h1>Bem-vindo ao Serviço de Babá</h1>",
+        }
+        self.is_healthy: bool = True
+
+    async def get_home(
+        self, lang: Lang = "en", name: str = ""
+    ) -> str:
+        base_content = self.home_pages.get(
+            lang, self.home_pages["en"]
+        )
+        if name:
+            return base_content.replace(
+                "</h1>", f", {name}!</h1>"
+            )
+        return base_content
+
+    async def health_check(self) -> bool:
+        return self.is_healthy
 
 
 class PortalClient(PortalClientInterface):
@@ -43,29 +67,3 @@ class PortalClient(PortalClientInterface):
                 return response.status_code == 200
         except httpx.RequestError:
             return False
-
-
-class MockPortalClient(PortalClientInterface):
-    def __init__(self):
-        self.home_pages: dict[Lang, str] = {
-            "en": "<h1>Welcome to Babysitting Service</h1>",
-            "fr": "<h1>Bienvenue au Service de Garde</h1>",
-            "it": "<h1>Benvenuti al Servizio di Babysitting</h1>",
-            "pt": "<h1>Bem-vindo ao Serviço de Babá</h1>",
-        }
-        self.is_healthy = True
-
-    async def get_home(
-        self, lang: Lang = "en", name: str = ""
-    ) -> str:
-        base_content = self.home_pages.get(
-            lang, self.home_pages["en"]
-        )
-        if name:
-            return base_content.replace(
-                "</h1>", f", {name}!</h1>"
-            )
-        return base_content
-
-    async def health_check(self) -> bool:
-        return self.is_healthy
