@@ -98,9 +98,7 @@ rate_limiter.add_rule(
 )
 
 rate_limiter.add_rule(
-    path_matcher=lambda p: "/reserve" in p
-    or "/confirm" in p
-    or "/refuse" in p,
+    path_matcher=lambda p: "/reserve" in p,
     requests_per_minute=20,
     burst_size=25,
 )
