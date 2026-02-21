@@ -87,7 +87,7 @@ def app_with_rate_limiter(
 
     # Configure rate limiter
     app.add_middleware(
-        RateLimitMiddleware,
+        RateLimitMiddleware, # ty: ignore[invalid-argument-type]
         rate_limiter=rate_limiter,
     )
     app.include_router(aggregation_router)

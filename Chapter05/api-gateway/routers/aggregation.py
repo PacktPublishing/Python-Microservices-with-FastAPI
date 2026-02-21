@@ -61,12 +61,13 @@ async def fetch_aggregated_health(
 
 @router.get("/health", response_model=HealthStatusResponse)
 async def aggregated_health(
-    portal_client: Annotated[PortalClientInterface, Depends(
-        get_portal_client
-    )],
-    reservation_client: Annotated[ReservationClientInterface, Depends(
-        get_reservation_client
-    )],
+    portal_client: Annotated[
+        PortalClientInterface, Depends(get_portal_client)
+    ],
+    reservation_client: Annotated[
+        ReservationClientInterface,
+        Depends(get_reservation_client),
+    ],
 ):
     """
     Aggregated health check across all downstream services.
@@ -120,13 +121,16 @@ async def fetch_availability_summary(
     "/availability-summary", response_model=AvailabilitySummary
 )
 async def get_availability_summary(
-    reservation_client: Annotated[ReservationClientInterface, Depends(
-        get_reservation_client
-    )],
-    week_day: Annotated[WeekDay | None, Query(description="Filter by day"
-    )] = None,
-    time_slot: Annotated[TimeSlot | None , Query( description="Filter by time slot"
-    )] = None,
+    reservation_client: Annotated[
+        ReservationClientInterface,
+        Depends(get_reservation_client),
+    ],
+    week_day: Annotated[
+        WeekDay | None, Query(description="Filter by day")
+    ] = None,
+    time_slot: Annotated[
+        TimeSlot | None, Query(description="Filter by time slot")
+    ] = None,
 ):
     """
     Aggregated summary of slot availability.
