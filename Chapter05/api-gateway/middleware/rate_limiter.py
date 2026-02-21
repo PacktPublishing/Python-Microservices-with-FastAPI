@@ -1,11 +1,10 @@
+import json
 import time
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from fastapi import Request, Response
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 @dataclass
@@ -147,49 +146,97 @@ class RateLimiter:
         return False
 
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, rate_limiter: RateLimiter):
-        super().__init__(app)
+class RateLimitMiddleware:
+    def __init__(
+        self, app: ASGIApp, *, rate_limiter: RateLimiter
+    ) -> None:
+        self.app = app
         self.rate_limiter = rate_limiter
 
-    async def dispatch(
-        self, request: Request, call_next
-    ) -> Response:
-        # Use client IP as identifier (in production, consider using API keys)
-        client_id = self._get_client_id(request)
-        path = request.url.path
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        client_id = self._get_client_id(scope)
+        path: str = scope["path"]
 
         allowed, headers = self.rate_limiter.is_allowed(
             client_id, path
         )
 
         if not allowed:
-            return JSONResponse(
-                status_code=429,
-                content={
-                    "detail": "Rate limit exceeded",
-                    "retry_after": headers.get("Retry-After"),
-                },
-                headers=headers,
+            await self._send_rate_limit_response(send, headers)
+            return
+
+        # Wrap send to inject rate limit headers
+        async def send_with_headers(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                existing_headers = list(
+                    message.get("headers", [])
+                )
+                for key, value in headers.items():
+                    existing_headers.append(
+                        (key.lower().encode(), value.encode())
+                    )
+                message = {
+                    **message,
+                    "headers": existing_headers,
+                }
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
+
+    async def _send_rate_limit_response(
+        self, send: Send, headers: dict[str, str]
+    ) -> None:
+        """Send a 429 rate limit exceeded response."""
+        body = json.dumps(
+            {
+                "detail": "Rate limit exceeded",
+                "retry_after": headers.get("Retry-After"),
+            }
+        ).encode()
+
+        response_headers: list[tuple[bytes, bytes]] = [
+            (b"content-type", b"application/json"),
+            (b"content-length", str(len(body)).encode()),
+        ]
+        for key, value in headers.items():
+            response_headers.append(
+                (key.lower().encode(), value.encode())
             )
 
-        response = await call_next(request)
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 429,
+                "headers": response_headers,
+            }
+        )
+        await send(
+            {
+                "type": "http.response.body",
+                "body": body,
+            }
+        )
 
-        # Add rate limit headers to response
-        for key, value in headers.items():
-            response.headers[key] = value
-
-        return response
-
-    def _get_client_id(self, request: Request) -> str:
-        """Extract client identifier from request."""
-        # Check for X-Forwarded-For header (behind proxy)
-        forwarded = request.headers.get("X-Forwarded-For")
+    def _get_client_id(self, scope: Scope) -> str:
+        """Extract client identifier from ASGI scope."""
+        # Check headers for X-Forwarded-For
+        headers = dict(scope.get("headers", []))
+        forwarded = headers.get(b"x-forwarded-for")
         if forwarded:
-            return forwarded.split(",")[0].strip()
+            return forwarded.decode().split(",")[0].strip()
 
         # Fall back to direct client IP
-        if request.client:
-            return request.client.host
+        client = scope.get("client")
+        if client:
+            return client[0]
 
         return "unknown"

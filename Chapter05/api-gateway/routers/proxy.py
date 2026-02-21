@@ -66,8 +66,10 @@ async def make_reservation(
 )
 async def get_portal_home_page(
     lang: Lang,
-    client: Annotated[PortalClientInterface, Depends(get_portal_client)],
-    name: Annotated[str,Body()]= "",
+    client: Annotated[
+        PortalClientInterface, Depends(get_portal_client)
+    ],
+    name: Annotated[str, Body()] = "",
 ) -> str:
     """Get the portal home page with language selection."""
     try:
@@ -82,9 +84,10 @@ async def get_portal_home_page(
 
 @router.get("/reservations/slots", tags=["Reservations"])
 async def get_all_reservations(
-    client: Annotated[ReservationClientInterface , Depends(
-        get_reservation_client
-    )],
+    client: Annotated[
+        ReservationClientInterface,
+        Depends(get_reservation_client),
+    ],
     week_day: Annotated[WeekDay | None, Query()] = None,
     time_slot: Annotated[TimeSlot | None, Query()] = None,
 ) -> list[dict]:
@@ -106,9 +109,10 @@ async def get_all_reservations(
 async def reserve_slot(
     slot_id: UUID,
     reservation: ReservationRequest,
-    client: Annotated[ReservationClientInterface, Depends(
-        get_reservation_client
-    )],
+    client: Annotated[
+        ReservationClientInterface,
+        Depends(get_reservation_client),
+    ],
 ) -> dict:
     """Reserve a slot."""
     try:

@@ -105,7 +105,8 @@ rate_limiter.add_rule(
 
 # Add rate limiting middleware
 app.add_middleware(
-    RateLimitMiddleware,  # type: ignore[arg-type]
+    RateLimitMiddleware, # ty: ignore[invalid-argument-type]
+    # ty bug see https://github.com/astral-sh/ty/issues/1635
     rate_limiter=rate_limiter,
 )
 
