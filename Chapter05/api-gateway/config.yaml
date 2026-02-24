@@ -1,0 +1,6 @@
+services:
+  use_mocks: true # false if you want to use production clients
+  portal:
+    base_url: "http://localhost:8002"
+  reservations:
+    base_url: "http://localhost:8003"
