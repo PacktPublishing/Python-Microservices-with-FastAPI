@@ -6,8 +6,12 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from rate_limiter import limiter
 from routers import aggregation_router
 from services import MockPortalClient, MockReservationClient
+
+# Disable rate limiter for unit tests
+limiter.enabled = False
 
 
 @pytest.fixture

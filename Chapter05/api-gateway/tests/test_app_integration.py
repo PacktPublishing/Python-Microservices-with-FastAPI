@@ -3,22 +3,10 @@ from contextlib import asynccontextmanager
 from uuid import uuid4
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.testclient import TestClient
-
-from middleware import RateLimiter, RateLimitMiddleware
-from routers import aggregation_router
-from services import MockPortalClient, MockReservationClient
-
-
-@pytest.fixture
-def mock_portal_client():
-    return MockPortalClient()
-
-
-@pytest.fixture
-def mock_reservation_client():
-    return MockReservationClient()
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIASGIMiddleware
 
 
 @pytest.fixture
@@ -60,21 +48,10 @@ def populated_reservation_client(mock_reservation_client):
 
 
 @pytest.fixture
-def rate_limiter():
-    rate_limiter = RateLimiter()
-    rate_limiter.add_rule(
-        path_matcher=lambda p: p.startswith("/aggregate"),
-        requests_per_minute=5,
-        burst_size=5,
-    )
-    return rate_limiter
-
-
-@pytest.fixture
 def app_with_rate_limiter(
-    mock_portal_client, populated_reservation_client, rate_limiter
+    mock_portal_client, populated_reservation_client, limiter
 ):
-    """Create app with mock clients and rate limiter using lifespan."""
+    """Create app with mock clients and rate limiter."""
 
     @asynccontextmanager
     async def test_lifespan(app: FastAPI) -> AsyncIterator[dict]:
@@ -84,13 +61,57 @@ def app_with_rate_limiter(
         }
 
     app = FastAPI(lifespan=test_lifespan)
+    app.state.limiter = limiter
 
-    # Configure rate limiter
+    @app.exception_handler(RateLimitExceeded)
+    async def rate_limit_handler(
+        _request: Request, exc: RateLimitExceeded
+    ):
+        from fastapi.responses import JSONResponse
+
+        return JSONResponse(
+            status_code=429,
+            content={
+                "detail": "Rate limit exceeded",
+                "retry_after": "60",
+            },
+            headers={
+                "Retry-After": "60",
+                "X-RateLimit-Limit": str(exc.detail),
+            },
+        )
+
     app.add_middleware(
-        RateLimitMiddleware, # ty: ignore[invalid-argument-type]
-        rate_limiter=rate_limiter,
+        SlowAPIASGIMiddleware  # ty: ignore[invalid-argument-type]
     )
-    app.include_router(aggregation_router)
+
+    # Add rate-limited endpoints for testing
+    @app.get("/aggregate/availability-summary")
+    @limiter.limit("5/minute")
+    async def availability_summary(
+        request: Request,
+        response: Response,
+        week_day: str | None = None,
+        time_slot: str | None = None,
+    ):
+        del request, response
+        from routers.aggregation import fetch_availability_summary
+
+        return await fetch_availability_summary(
+            populated_reservation_client,
+            week_day=week_day,  # ty: ignore[invalid-argument-type]
+            time_slot=time_slot,  # ty: ignore[invalid-argument-type]
+        )
+
+    @app.get("/aggregate/health")
+    @limiter.limit("5/minute")
+    async def health(request: Request, response: Response):
+        del request
+        from routers.aggregation import fetch_aggregated_health
+
+        return await fetch_aggregated_health(
+            mock_portal_client, populated_reservation_client
+        )
 
     return app, mock_portal_client, populated_reservation_client
 
@@ -110,27 +131,27 @@ class TestAppWithRateLimiter:
         response = client.get("/aggregate/availability-summary")
 
         assert response.status_code == 200
-        assert "X-RateLimit-Limit" in response.headers
-        assert "X-RateLimit-Remaining" in response.headers
-        assert "X-RateLimit-Reset" in response.headers
+        assert "x-ratelimit-limit" in response.headers
+        assert "x-ratelimit-remaining" in response.headers
+        assert "x-ratelimit-reset" in response.headers
 
     def test_rate_limit_decrements(self, client):
         """Test rate limit remaining decrements with requests."""
         response1 = client.get("/aggregate/availability-summary")
         remaining1 = int(
-            response1.headers["X-RateLimit-Remaining"]
+            response1.headers["x-ratelimit-remaining"]
         )
 
         response2 = client.get("/aggregate/availability-summary")
         remaining2 = int(
-            response2.headers["X-RateLimit-Remaining"]
+            response2.headers["x-ratelimit-remaining"]
         )
 
         assert remaining2 < remaining1
 
     def test_rate_limit_exceeded_returns_429(self, client):
         """Test exceeding rate limit returns 429."""
-        # Exhaust the rate limit (burst_size=5)
+        # Exhaust the rate limit (5/minute)
         for _ in range(5):
             client.get("/aggregate/availability-summary")
 

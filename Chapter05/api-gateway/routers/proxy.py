@@ -1,10 +1,18 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+)
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, EmailStr
 
+from rate_limiter import limiter
 from routers.dependencies import (
     get_portal_client,
     get_reservation_client,
@@ -64,7 +72,9 @@ async def make_reservation(
     response_class=HTMLResponse,
     tags=["Portal"],
 )
+@limiter.limit("100/minute")
 async def get_portal_home_page(
+    request: Request,  # Required by slowapi limiter
     lang: Lang,
     client: Annotated[
         PortalClientInterface, Depends(get_portal_client)
@@ -83,7 +93,9 @@ async def get_portal_home_page(
 
 
 @router.get("/reservations/slots", tags=["Reservations"])
+@limiter.limit("60/minute")
 async def get_all_reservations(
+    request: Request,  # Required by slowapi limiter
     client: Annotated[
         ReservationClientInterface,
         Depends(get_reservation_client),
@@ -106,7 +118,9 @@ async def get_all_reservations(
 @router.post(
     "/reservations/slots/{slot_id}/reserve", tags=["Reservations"]
 )
+@limiter.limit("20/minute")
 async def reserve_slot(
+    request: Request,  # Required by slowapi limiter
     slot_id: UUID,
     reservation: ReservationRequest,
     client: Annotated[

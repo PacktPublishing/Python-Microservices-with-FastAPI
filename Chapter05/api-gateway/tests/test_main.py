@@ -6,7 +6,7 @@ class TestAppConfiguration:
 
     def test_app_title(self):
         """Test app has correct title."""
-        assert app.title == "Babysitting API Gateway"
+        assert app.title == "Parents API Gateway"
 
     def test_app_version(self):
         """Test app has correct version."""
