@@ -2,10 +2,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import TypedDict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIASGIMiddleware
 
 from container import Container
-from middleware import RateLimiter, RateLimitMiddleware
+from rate_limiter import limiter
 from routers import aggregation_router, proxy_router
 from services import (
     PortalClientInterface,
@@ -43,7 +45,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[State]:
 
 
 app = FastAPI(
-    title="Babysitting API Gateway",
+    title="Parents API Gateway",
     description="""
 API Gateway demonstrating aggregation patterns and rate limiting.
 
@@ -72,42 +74,35 @@ Tiered rate limits applied by endpoint type:
     lifespan=lifespan,
 )
 
-# Configure rate limiter with tiered limits
-rate_limiter = RateLimiter()
+# Attach limiter to app state for slowapi
+app.state.limiter = limiter
 
-# Public tier - portal endpoints (highest limit)
-rate_limiter.add_rule(
-    path_matcher=lambda p: p.startswith("/portal"),
-    requests_per_minute=100,
-    burst_size=120,
-)
 
-# Aggregation tier - composite endpoints
-rate_limiter.add_rule(
-    path_matcher=lambda p: p.startswith("/aggregate"),
-    requests_per_minute=30,
-    burst_size=40,
-)
+# Custom rate limit exceeded handler
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(
+    _request: Request, exc: RateLimitExceeded
+):
+    from fastapi.responses import JSONResponse
 
-# Read tier - GET operations on reservations
-rate_limiter.add_rule(
-    path_matcher=lambda p: p.startswith("/reservations")
-    and "/slots" in p,
-    requests_per_minute=60,
-    burst_size=80,
-)
+    retry_after = getattr(exc, "retry_after", 60)
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={
+            "detail": "Rate limit exceeded",
+            "retry_after": str(retry_after),
+        },
+        headers={
+            "Retry-After": str(retry_after),
+            "X-RateLimit-Limit": str(exc.detail),
+        },
+    )
 
-rate_limiter.add_rule(
-    path_matcher=lambda p: "/reserve" in p,
-    requests_per_minute=20,
-    burst_size=25,
-)
 
-# Add rate limiting middleware
+# Add SlowAPI ASGI middleware
 app.add_middleware(
-    RateLimitMiddleware, # ty: ignore[invalid-argument-type]
-    # ty bug see https://github.com/astral-sh/ty/issues/1635
-    rate_limiter=rate_limiter,
+    SlowAPIASGIMiddleware  # ty: ignore[invalid-argument-type]
+    # due to ty: see updates at https://github.com/astral-sh/ty/issues/1635
 )
 
 # Include routers

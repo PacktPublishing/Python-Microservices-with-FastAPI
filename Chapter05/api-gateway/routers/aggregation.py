@@ -6,9 +6,11 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    Request,
 )
 from pydantic import BaseModel
 
+from rate_limiter import limiter
 from routers.dependencies import (
     get_portal_client,
     get_reservation_client,
@@ -60,7 +62,9 @@ async def fetch_aggregated_health(
 
 
 @router.get("/health", response_model=HealthStatusResponse)
+@limiter.limit("30/minute")
 async def aggregated_health(
+    request: Request,  # Required by slowapi limiter
     portal_client: Annotated[
         PortalClientInterface, Depends(get_portal_client)
     ],
@@ -120,7 +124,9 @@ async def fetch_availability_summary(
 @router.get(
     "/availability-summary", response_model=AvailabilitySummary
 )
+@limiter.limit("30/minute")
 async def get_availability_summary(
+    request: Request,  # Required by slowapi limiter
     reservation_client: Annotated[
         ReservationClientInterface,
         Depends(get_reservation_client),

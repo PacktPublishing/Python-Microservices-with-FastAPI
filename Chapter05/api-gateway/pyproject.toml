@@ -10,6 +10,7 @@ dependencies = [
     "pydantic[email]>=2.12.5",
     "dependency-injector>=4.45.0",
     "pyyaml>=6.0.0",
+    "slowapi>=0.1.9",
 ]
 
 [dependency-groups]
