@@ -1,4 +1,3 @@
-
 from pydantic_core import ValidationError
 
 from domain.entities import AvailabilitySlot
