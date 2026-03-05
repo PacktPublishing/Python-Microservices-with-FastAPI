@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 from uuid import UUID
 
 from .entities import AvailabilitySlot
@@ -24,7 +23,7 @@ class AvailabilitySlotRepository(ABC):
         self,
         week_day: WeekDay | None = None,
         time_slot: TimeSlot | None = None,
-    ) -> List[AvailabilitySlot]:
+    ) -> list[AvailabilitySlot]:
         """Find all available slots, optionally filtered by day and time"""
 
     @abstractmethod

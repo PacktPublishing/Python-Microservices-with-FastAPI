@@ -1,5 +1,5 @@
 from dataclasses import field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from pydantic.dataclasses import dataclass
@@ -50,7 +50,7 @@ class AvailabilitySlot:
 
         self.status = SlotStatus.RESERVED
         self.reservation = reservation_request
-        self.reserved_at = datetime.now(timezone.utc)
+        self.reserved_at = datetime.now(UTC)
 
     def confirm(self) -> None:
         """Babysitter confirms the reservation"""
@@ -60,7 +60,7 @@ class AvailabilitySlot:
             )
 
         self.status = SlotStatus.CONFIRMED
-        self.confirmed_at = datetime.now(timezone.utc)
+        self.confirmed_at = datetime.now(UTC)
 
     def refuse(self) -> None:
         """Babysitter refuses the reservation - slot becomes available again"""

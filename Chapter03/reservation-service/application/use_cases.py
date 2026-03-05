@@ -1,4 +1,3 @@
-from typing import List
 
 from pydantic_core import ValidationError
 
@@ -154,7 +153,7 @@ class ListAvailableSlotsUseCase:
 
     def execute(
         self, request: ListAvailableSlotsRequest
-    ) -> List[SlotResponse]:
+    ) -> list[SlotResponse]:
         # Parse filters
         week_day = None
         time_slot = None
