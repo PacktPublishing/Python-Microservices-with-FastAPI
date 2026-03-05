@@ -21,7 +21,7 @@ dev = [
 line-length = 66
 
 [tool.ruff.lint]
-select = ["I", "E4", "E7", "F", "Q", "FAST"]
+select = ["I", "E4", "E7", "F", "Q", "FAST", "UP"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

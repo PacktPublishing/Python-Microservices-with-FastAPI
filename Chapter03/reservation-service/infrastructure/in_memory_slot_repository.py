@@ -1,5 +1,4 @@
 from copy import deepcopy
-from typing import Dict, List
 from uuid import UUID
 
 from domain.entities import AvailabilitySlot
@@ -11,7 +10,7 @@ class InMemorySlotRepository(AvailabilitySlotRepository):
     """In-memory implementation of AvailabilitySlotRepository for testing/demo"""
 
     def __init__(self):
-        self._storage: Dict[UUID, AvailabilitySlot] = {}
+        self._storage: dict[UUID, AvailabilitySlot] = {}
 
     def save(self, slot: AvailabilitySlot) -> AvailabilitySlot:
         """Save or update a slot"""
@@ -31,7 +30,7 @@ class InMemorySlotRepository(AvailabilitySlotRepository):
         self,
         week_day: WeekDay | None = None,
         time_slot: TimeSlot | None = None,
-    ) -> List[AvailabilitySlot]:
+    ) -> list[AvailabilitySlot]:
         """Find all available slots, optionally filtered by day and time"""
         results = []
 

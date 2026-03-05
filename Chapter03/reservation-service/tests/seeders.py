@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 
 from domain.entities import AvailabilitySlot
@@ -55,7 +54,7 @@ class SlotSeeder:
     @classmethod
     def seed(
         cls, repository: AvailabilitySlotRepository
-    ) -> List[UUID]:
+    ) -> list[UUID]:
         """
         Populate repository with sample data for testing/demo.
         Returns list of created slot IDs.

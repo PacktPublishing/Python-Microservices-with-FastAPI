@@ -1,8 +1,8 @@
 import logging
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from typing import Awaitable, Callable, TypedDict
+from typing import TypedDict
 
 from fastapi import FastAPI, Request, Response
 
