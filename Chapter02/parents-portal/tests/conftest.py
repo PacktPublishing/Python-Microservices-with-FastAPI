@@ -6,7 +6,6 @@ from app.main import app
 
 @pytest.fixture(scope="module")
 def test_client():
-    """Create a TestClient for the app, shared across all tests in the module."""
     return TestClient(app)
 
 
