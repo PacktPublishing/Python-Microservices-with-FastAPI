@@ -19,7 +19,10 @@ profile = "jinja"
 line-length = 66
 
 [tool.ruff.lint]
-select = ["I", "E4", "E7", "E9", "F", "Q"]
+select = ["I", "E", "F", "Q", "UP", "FAST"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length=120
 
 [dependency-groups]
 dev = [
