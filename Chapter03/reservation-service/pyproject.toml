@@ -21,7 +21,10 @@ dev = [
 line-length = 66
 
 [tool.ruff.lint]
-select = ["I", "E4", "E7", "F", "Q", "FAST", "UP"]
+select = ["I", "E", "F", "Q", "FAST", "UP"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length=120
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
