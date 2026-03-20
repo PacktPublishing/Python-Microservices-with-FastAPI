@@ -28,7 +28,7 @@ def test_home_with_cookie_expired(test_client):
 
     # Advance time by expiration + 1 second so the cookie expires
     with freeze_time(
-        datetime.datetime.now(datetime.timezone.utc)
+        datetime.datetime.now(datetime.UTC)
         + datetime.timedelta(seconds=COOKIE_EXPIRATION_TIME + 1)
     ):
         response = test_client.get("/home")

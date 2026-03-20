@@ -12,7 +12,7 @@ router = APIRouter()
 COOKIE_EXPIRATION_TIME = 60
 
 
-cookies_store = TTLCache(  # type: ignore[var-annotated]
+cookies_store = TTLCache(
     maxsize=100,
     ttl=COOKIE_EXPIRATION_TIME,
     timer=lambda: time.monotonic(),
@@ -32,7 +32,7 @@ class Lang(StrEnum):
 async def home(
     request: Request,
     lang: Lang,
-    name: str = Query(default=""),
+    name: str = Query(default=""), # noqa: FAST002
 ):
     request_cookie = request.cookies.get("TRACKING")
     cookie_content = cookies_store.get(request_cookie, "Invalid")
