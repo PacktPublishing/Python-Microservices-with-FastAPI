@@ -13,11 +13,11 @@ dev = [
   "pre-commit>=4.2.0",
   "pytest>=8.4.1",
   "ruff>=0.12.8",
-  "ty>=0.0.8",
+  "ty>=0.0.8"
 ]
 
 [tool.ruff]
 line-length = 61
 
 [tool.ruff.lint]
-select = ["I", "E4", "E7", "F", "Q"]
+select = ["I", "E4", "E7", "F", "Q", "UP", "FAST"]
