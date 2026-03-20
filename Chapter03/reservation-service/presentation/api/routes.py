@@ -90,10 +90,10 @@ async def create_availability_slot(
 )
 async def list_available_slots(
     request: Request,
-    week_day: WeekDaySchema | None = Query(
+    week_day: WeekDaySchema | None = Query(  # noqa: FAST002
         None, description="Filter by day of the week"
     ),
-    time_slot: TimeSlotSchema | None = Query(
+    time_slot: TimeSlotSchema | None = Query(  # noqa: FAST002
         None, description="Filter by time slot"
     ),
 ) -> list[SlotResponseSchema]:

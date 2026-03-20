@@ -69,4 +69,4 @@ async def measuring_request_performance(
     return response
 
 
-app.add_middleware(StateCheckMiddleware)
+app.add_middleware(StateCheckMiddleware) # ty: ignore[invalid-argument-type] known issue with ty
