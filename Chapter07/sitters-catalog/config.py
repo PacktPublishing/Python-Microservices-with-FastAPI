@@ -1,7 +1,6 @@
 from enum import StrEnum
 
 from pydantic import ConfigDict
-
 from pydantic_settings import BaseSettings
 
 
