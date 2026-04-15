@@ -78,7 +78,8 @@ jobs:
       - name: Run pytest
         run: |
           # Check if tests directory or test files exist
-          if [ -d "tests" ] || find . -name "test_*.py" -o -name "*_test.py" | grep -q .; then
+          if [ -d "tests" ] || \
+             find . -not -path "./.venv/*" \( -name "test_*.py" -o -name "*_test.py" \) | grep -q .; then
             uv run pytest -v
           else
             echo "No tests found in ${{ matrix.project }}"
