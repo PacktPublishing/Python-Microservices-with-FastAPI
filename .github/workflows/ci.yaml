@@ -73,7 +73,7 @@ jobs:
         run: uv run ruff check . --select "I,E,F,Q,UP,FAST" --line-length 120
 
       - name: Run type checker
-        run: uv run ty check || true
+        run: uv run ty check
 
       - name: Run pytest
         run: |
