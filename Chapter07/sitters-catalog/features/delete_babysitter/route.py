@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, status
 
 from shared.dependencies import get_repository
+from shared.infrastructure import BaseRepository
 
 from .handler import delete_babysitter
 
@@ -19,7 +20,7 @@ BabysitterIdDep = Annotated[
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_babysitter_endpoint(
     id: BabysitterIdDep,
-    repo: Annotated[object, Depends(get_repository)],
+    repo: Annotated[BaseRepository, Depends(get_repository)],
 ) -> None:
     """Permanently remove. Use /deactivate for soft-delete."""
     await delete_babysitter(id, repo)

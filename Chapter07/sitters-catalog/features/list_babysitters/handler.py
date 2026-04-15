@@ -1,4 +1,4 @@
-from shared.dto import BabysitterResponseDTO
+from shared.domain.entities import Babysitter
 from shared.infrastructure.base_repository import BaseRepository
 
 from .dto import BabysitterSearchFilters
@@ -9,7 +9,7 @@ async def list_babysitters(
     skip: int,
     limit: int,
     repo: BaseRepository,
-) -> list[BabysitterResponseDTO]:
+) -> list[Babysitter]:
     """Search and list babysitters with optional filters."""
     raw: dict = {}
     if filters.city is not None:

@@ -15,25 +15,25 @@ class MongoDBRepository(BaseRepository):
         db = self.client.sitter_calatog_app
         self._collection = db.babysitters
 
-    async def save_sitter(self, entity: Babysitter) -> Babysitter:
+    async def save_sitter(self, sitter: Babysitter) -> Babysitter:
         """Persist an entity. Creates new or updates existing."""
-        entity.refresh_updated_at()
-        data = entity.model_dump(exclude={"id"})
+        sitter.refresh_updated_at()
+        data = sitter.model_dump(exclude={"id"})
 
-        if entity.id:
+        if sitter.id:
             # Update existing document
             await self._collection.replace_one(
-                {"_id": ObjectId(entity.id)},
+                {"_id": ObjectId(sitter.id)},
                 data,
             )
         else:
             # Insert new document
-            entity.created_at = datetime.now(UTC)
-            data["created_at"] = entity.created_at
+            sitter.created_at = datetime.now(UTC)
+            data["created_at"] = sitter.created_at
             result = await self._collection.insert_one(data)
-            entity.id = str(result.inserted_id)
+            sitter.id = str(result.inserted_id)
 
-        return entity
+        return sitter
 
     async def find_sitter_by_id(
         self, id: str
@@ -44,7 +44,7 @@ class MongoDBRepository(BaseRepository):
                 {"_id": ObjectId(id)}
             )
             if doc:
-                return self._to_entity(doc)
+                return Babysitter.model_validate(doc)
         except Exception:
             pass
         return None
@@ -80,7 +80,7 @@ class MongoDBRepository(BaseRepository):
             .sort("years_of_experience", -1)
             .limit(limit)
         )
-        return [self._to_entity(doc) async for doc in cursor]
+        return [Babysitter.model_validate(doc) async for doc in cursor]
 
     def _build_query(self, filters: dict) -> dict:
         """Build MongoDB query from filter parameters."""

@@ -1,7 +1,6 @@
 from enum import StrEnum
 
-from pydantic import ConfigDict
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class RepositoryType(StrEnum):
@@ -20,7 +19,7 @@ class Settings(BaseSettings):
     repository_type: RepositoryType = RepositoryType.TINYDB_FILE
     tinydb_path: str = "data/babysitters_db.json"
 
-    model_config = ConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 settings = Settings()

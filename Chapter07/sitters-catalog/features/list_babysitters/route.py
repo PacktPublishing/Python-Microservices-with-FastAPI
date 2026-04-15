@@ -1,9 +1,10 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 
 from shared.dependencies import get_repository
 from shared.dto import BabysitterResponseDTO
+from shared.infrastructure.base_repository import BaseRepository
 
 from .dto import BabysitterSearchFilters
 from .handler import list_babysitters
@@ -13,9 +14,9 @@ router = APIRouter(
 )
 
 
-@router.get("/")
+@router.get("/", response_model=list[BabysitterResponseDTO])
 async def list_babysitters_endpoint(
-    repo: Annotated[object, Depends(get_repository)],
+    repo: Annotated[BaseRepository, Depends(get_repository)],
     city: Annotated[
         str | None, Query(description="Filter by city")
     ] = None,
@@ -44,7 +45,7 @@ async def list_babysitters_endpoint(
         int,
         Query(ge=1, le=100, description="Page size (max 100)"),
     ] = 20,
-) -> list[BabysitterResponseDTO]:
+) -> Any:
     """Search and list babysitters with optional filters."""
     filters = BabysitterSearchFilters(
         city=city,

@@ -38,25 +38,25 @@ class TinyDBRepository(BaseRepository):
 
         self._collection = self._db.table("babysitters")
 
-    async def save_sitter(self, entity: Babysitter) -> Babysitter:
+    async def save_sitter(self, sitter: Babysitter) -> Babysitter:
         """Persist an entity. Creates new or updates existing."""
-        if entity.id is None:
-            entity.id = str(uuid.uuid4())
-            entity.created_at = datetime.now(UTC)
+        if sitter.id is None:
+            sitter.id = str(uuid.uuid4())
+            sitter.created_at = datetime.now(UTC)
 
-        entity.refresh_updated_at()
+        sitter.refresh_updated_at()
 
         q = Query()
-        existing = self._collection.search(q.id == entity.id)
+        existing = self._collection.search(q.id == sitter.id)
 
-        data = entity.model_dump(mode="json")
+        data = sitter.model_dump(mode="json")
 
         if existing:
-            self._collection.update(data, q.id == entity.id)
+            self._collection.update(data, q.id == sitter.id)
         else:
             self._collection.insert(data)
 
-        return entity
+        return sitter
 
     async def find_sitter_by_id(
         self, id: str
