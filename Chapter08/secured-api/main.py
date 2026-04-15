@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated, TypedDict
 
 from fastapi import Depends, FastAPI
-from security.authenticator import (
+from security.authenticators import (
     BaseAuthenticator,
     UnsafeAuthenticator,
 )

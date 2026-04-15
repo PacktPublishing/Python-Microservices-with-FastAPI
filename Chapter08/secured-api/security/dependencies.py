@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 
-from .authenticator import BaseAuthenticator
+from .authenticators import BaseAuthenticator
 from .commons import UserInfo
 
 oauth2_scheme = OAuth2PasswordBearer(
