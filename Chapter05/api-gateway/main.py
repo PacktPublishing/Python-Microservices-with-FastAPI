@@ -30,7 +30,7 @@ container.config.from_yaml("config.yaml")
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[State]:
+async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
     # Startup: Initialize service clients from container
     portal_client = container.portal_client()
     reservation_client = container.reservation_client()

@@ -22,7 +22,7 @@ class State(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[State]:
+async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
     """
     Lifespan context manager for application startup and shutdown.
     Initializes the repository and stores it in application state.

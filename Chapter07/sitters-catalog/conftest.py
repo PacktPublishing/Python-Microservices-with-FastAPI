@@ -122,7 +122,7 @@ def app(repository: TinyDBRepository) -> FastAPI:
     """Create test FastAPI app with TinyDB repository."""
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI) -> AsyncIterator[dict]:
+    async def lifespan(_app: FastAPI) -> AsyncIterator[dict]:
         yield {"repository": repository}
 
     test_app = FastAPI(lifespan=lifespan)
