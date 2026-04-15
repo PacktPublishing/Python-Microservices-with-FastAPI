@@ -3,11 +3,11 @@ from contextlib import asynccontextmanager
 from typing import Annotated, TypedDict
 
 from fastapi import Depends, FastAPI
+
 from security.authenticators import (
     BaseAuthenticator,
     UnsafeAuthenticator,
 )
-
 from security.commons import UserInfo
 from security.dependencies import GetUserWithRole, get_user
 from security.router import router as security_router
