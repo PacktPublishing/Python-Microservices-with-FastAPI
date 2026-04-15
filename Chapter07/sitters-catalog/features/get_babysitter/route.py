@@ -1,9 +1,10 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path
 
 from shared.dependencies import get_repository
 from shared.dto import BabysitterResponseDTO
+from shared.infrastructure import BaseRepository
 
 from .handler import get_babysitter_by_id
 
@@ -17,10 +18,10 @@ BabysitterIdDep = Annotated[
 ]
 
 
-@router.get("/{id}")
+@router.get("/{id}", response_model=BabysitterResponseDTO)
 async def get_babysitter_endpoint(
     id: BabysitterIdDep,
-    repo: Annotated[object, Depends(get_repository)],
-) -> BabysitterResponseDTO:
+    repo: Annotated[BaseRepository, Depends(get_repository)],
+) -> Any:
     """Fetch a single babysitter by ID."""
     return await get_babysitter_by_id(id, repo)

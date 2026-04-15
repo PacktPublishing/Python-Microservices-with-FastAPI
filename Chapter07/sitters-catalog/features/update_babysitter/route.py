@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path
 
@@ -19,21 +19,21 @@ BabysitterIdDep = Annotated[
 ]
 
 
-@router.put("/{id}")
+@router.put("/{id}", response_model=BabysitterResponseDTO)
 async def update_babysitter_endpoint(
     id: BabysitterIdDep,
     dto: UpdateBabysitterDTO,
     repo: Annotated[BaseRepository, Depends(get_repository)],
-) -> BabysitterResponseDTO:
+) -> Any:
     """Full update — replace all provided fields."""
     return await update_babysitter(id, dto, repo)
 
 
-@router.patch("/{id}")
+@router.patch("/{id}", response_model=BabysitterResponseDTO)
 async def partial_update_babysitter_endpoint(
     id: BabysitterIdDep,
     dto: UpdateBabysitterDTO,
     repo: Annotated[BaseRepository, Depends(get_repository)],
-) -> BabysitterResponseDTO:
+) -> Any:
     """Partial update — only sent fields are changed."""
     return await update_babysitter(id, dto, repo)
