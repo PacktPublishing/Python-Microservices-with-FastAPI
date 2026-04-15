@@ -39,7 +39,7 @@ class State(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[State]:
+async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
     if settings.repository_type == RepositoryType.MONGO:
         yield {
             "repository": MongoDBRepository(settings.mongo_uri)
