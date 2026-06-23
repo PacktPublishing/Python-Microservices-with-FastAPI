@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.115.0",
     "pymongo>=4.12.0",
-    "pydantic-settings>=2.6.0",
+    "pydantic-settings>=2.14.2",
     "tinydb>=4.8.0",
 ]
 
