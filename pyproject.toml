@@ -24,6 +24,3 @@ known-first-party = [
     "features", "shared",
     "routers", "services", "rate_limiter", "config", "container",
 ]
-
-[tool.ruff.lint.per-file-ignores]
-"Chapter05/api-gateway/routers/*.py" = ["ARG001"]

@@ -78,6 +78,7 @@ async def aggregated_health(
 
     Demonstrates parallel health checking of multiple services.
     """
+    _ = request
     return await fetch_aggregated_health(
         portal_client,
         reservation_client,
@@ -144,6 +145,7 @@ async def get_availability_summary(
     Returns slots grouped by day and time slot with counts,
     demonstrating data transformation in the gateway.
     """
+    _ = request
     try:
         return await fetch_availability_summary(
             reservation_client,

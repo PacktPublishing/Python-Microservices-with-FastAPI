@@ -82,6 +82,7 @@ async def get_portal_home_page(
     name: Annotated[str, Body()] = "",
 ) -> str:
     """Get the portal home page with language selection."""
+    _ = request
     try:
         return await fetch_portal_home(
             client, lang=lang, name=name
@@ -104,6 +105,7 @@ async def get_all_reservations(
     time_slot: Annotated[TimeSlot | None, Query()] = None,
 ) -> list[dict]:
     """Get all reservations with optional filtering."""
+    _ = request
     try:
         return await get_all_available_slots(
             client, week_day=week_day, time_slot=time_slot
@@ -129,6 +131,7 @@ async def reserve_slot(
     ],
 ) -> dict:
     """Reserve a slot."""
+    _ = request
     try:
         return await make_reservation(
             client,
