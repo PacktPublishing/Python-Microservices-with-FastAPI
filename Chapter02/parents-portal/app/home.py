@@ -32,7 +32,7 @@ class Lang(StrEnum):
 async def home(
     request: Request,
     lang: Lang,
-    name: str = Query(default=""), # noqa: FAST002
+    name: str = Query(default=""),  # noqa: FAST002
 ):
     request_cookie = request.cookies.get("TRACKING")
     cookie_content = cookies_store.get(request_cookie, "Invalid")

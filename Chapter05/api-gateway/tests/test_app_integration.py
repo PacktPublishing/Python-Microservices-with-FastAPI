@@ -54,7 +54,9 @@ def app_with_rate_limiter(
     """Create app with mock clients and rate limiter."""
 
     @asynccontextmanager
-    async def test_lifespan(_app: FastAPI) -> AsyncGenerator[dict]:
+    async def test_lifespan(
+        _app: FastAPI,
+    ) -> AsyncGenerator[dict]:
         yield {
             "portal_client": mock_portal_client,
             "reservation_client": populated_reservation_client,
