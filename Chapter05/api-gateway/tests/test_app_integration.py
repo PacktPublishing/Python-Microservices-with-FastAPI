@@ -96,7 +96,7 @@ def app_with_rate_limiter(
         week_day: str | None = None,
         time_slot: str | None = None,
     ):
-        del request, response
+        _ = request, response
         from routers.aggregation import fetch_availability_summary
 
         return await fetch_availability_summary(
@@ -107,8 +107,8 @@ def app_with_rate_limiter(
 
     @app.get("/aggregate/health")
     @limiter.limit("5/minute")
-    async def health(request: Request, _response: Response):
-        del request
+    async def health(request: Request, response: Response):
+        _ = request, response
         from routers.aggregation import fetch_aggregated_health
 
         return await fetch_aggregated_health(
