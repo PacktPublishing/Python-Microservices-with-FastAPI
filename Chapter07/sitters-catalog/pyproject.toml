@@ -11,6 +11,9 @@ dependencies = [
     "tinydb>=4.8.0",
 ]
 
+[tool.ruff.lint.isort]
+known-first-party = ["features", "shared", "config"]
+
 [tool.fastapi]
 entrypoint = "main:app"
 
