@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
@@ -79,7 +79,7 @@ def client(mock_portal_client, populated_reservation_client):
     """Create test client with mock clients using lifespan."""
 
     @asynccontextmanager
-    async def test_lifespan(app: FastAPI) -> AsyncIterator[dict]:
+    async def test_lifespan(_app: FastAPI) -> AsyncGenerator[dict]:
         yield {
             "portal_client": mock_portal_client,
             "reservation_client": populated_reservation_client,

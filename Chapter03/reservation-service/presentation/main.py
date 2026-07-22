@@ -1,6 +1,6 @@
 import logging
 import time
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import TypedDict
 
@@ -22,7 +22,7 @@ class State(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[State]:
     """
     Lifespan context manager for application startup and shutdown.
     Initializes the repository and stores it in application state.

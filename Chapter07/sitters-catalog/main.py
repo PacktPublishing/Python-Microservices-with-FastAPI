@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TypedDict
 
@@ -39,7 +39,7 @@ class State(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[State]:
     if settings.repository_type == RepositoryType.MONGO:
         yield {
             "repository": MongoDBRepository(settings.mongo_uri)
