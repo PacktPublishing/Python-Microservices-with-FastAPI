@@ -15,9 +15,3 @@ dev = [
   "ruff>=0.12.8",
   "ty>=0.0.8"
 ]
-
-[tool.ruff]
-line-length = 61
-
-[tool.ruff.lint]
-select = ["I", "E", "F", "Q", "UP", "FAST", "ARG"]

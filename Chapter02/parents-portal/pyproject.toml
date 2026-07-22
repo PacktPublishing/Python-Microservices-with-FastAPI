@@ -3,7 +3,7 @@ name = "parents-portal"
 version = "0.1.0"
 description = "The Parents portal of the application"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
   "cachetools>=6.1.0",
   "fastapi[standard]>=0.115.14"
@@ -15,14 +15,6 @@ pythonpath = "."
 [tool.djlint]
 profile = "jinja"
 
-[tool.ruff]
-line-length = 66
-
-[tool.ruff.lint]
-select = ["I", "E", "F", "Q", "UP", "FAST", "ARG"]
-
-[tool.ruff.lint.pycodestyle]
-max-line-length=120
 
 [dependency-groups]
 dev = [

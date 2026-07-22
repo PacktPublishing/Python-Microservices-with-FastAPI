@@ -1,0 +1,21 @@
+[tool.uv.workspace]
+members = [
+    "Chapter01/platform-home",
+    "Chapter02/parents-portal",
+    "Chapter03/reservation-service",
+    "Chapter05/api-gateway",
+    "Chapter07/sitters-catalog",
+]
+
+[tool.ruff]
+line-length = 66
+exclude = [".venv", "__pycache__"]
+
+[tool.ruff.lint]
+select = ["I", "E", "F", "Q", "UP", "FAST", "ARG"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120
+
+[tool.ruff.lint.per-file-ignores]
+"Chapter05/api-gateway/routers/*.py" = ["ARG001"]

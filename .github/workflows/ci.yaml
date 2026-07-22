@@ -7,79 +7,64 @@ on:
     branches: [main]
 
 jobs:
-  detect-projects:
+  lint:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Find Python projects
-        id: set-matrix
-        run: |
-          # Find all directories containing both pyproject.toml and uv.lock
-          projects=$(find . -name "pyproject.toml" -exec dirname {} \; | while read dir; do
-            if [ -f "$dir/uv.lock" ]; then
-              echo "$dir"
-            fi
-          done | sed 's|^\./||' | sed 's/.*/"&"/' | paste -sd, - | sed 's/^/[/;s/$/]/')
-          echo "matrix={\"project\":$projects}" >> $GITHUB_OUTPUT
-          echo "Found projects: $projects"
-          echo "Full matrix output: {\"project\":$projects}"
-
-  lint-and-test:
-    needs: detect-projects
-    if: ${{ needs.detect-projects.outputs.matrix != '{"project":[]}' }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.detect-projects.outputs.matrix) }}
-
-    defaults:
-      run:
-        working-directory: ${{ matrix.project }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Extract Python version from pyproject.toml
-        id: python-version
-        run: |
-          # Extract minimum Python version from requires-python
-          version=$(grep -oP 'requires-python\s*=\s*">=\K[0-9]+\.[0-9]+' pyproject.toml || echo "3.12")
-          echo "version=$version" >> $GITHUB_OUTPUT
-          echo "Using Python $version for ${{ matrix.project }}"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
       - name: Set up Python
-        run: uv python install ${{ steps.python-version.outputs.version }}
+        run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync --frozen
-
-      - name: Install pre-commit
-        run: uv tool install pre-commit
-
-      - name: Run pre-commit hooks
-        env:
-          SKIP: ruff,ty
-        run: |
-          # Run pre-commit hooks only on files in this project (skip ruff/ty, we run them separately)
-          find . -type f \( -name "*.py" -o -name "*.toml" -o -name "*.yaml" -o -name "*.yml" -o -name "*.json" -o -name "*.md" \) -not -path "./.venv/*" | xargs uv tool run pre-commit run --config ${{ github.workspace }}/.pre-commit-config.yaml --files || true
+        run: uv sync --frozen --all-packages
 
       - name: Run ruff linter
-        run: uv run ruff check . --select "I,E,F,Q,UP,FAST" --line-length 120
+        run: uv run ruff check .
 
       - name: Run type checker
         run: uv run ty check || true
 
-      - name: Run pytest
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: platform-home
+            path: Chapter01/platform-home
+          - name: parents-portal
+            path: Chapter02/parents-portal
+          - name: reservation-service
+            path: Chapter03/reservation-service
+          - name: api-gateway
+            path: Chapter05/api-gateway
+          - name: sitters-catalog
+            path: Chapter07/sitters-catalog
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-packages
+
+      - name: Run pytest (${{ matrix.name }})
         run: |
-          # Check if tests directory or test files exist
           if [ -d "tests" ] || find . -name "test_*.py" -o -name "*_test.py" | grep -q .; then
             uv run pytest -v
           else
-            echo "No tests found in ${{ matrix.project }}"
+            echo "No tests found in ${{ matrix.path }}"
           fi
