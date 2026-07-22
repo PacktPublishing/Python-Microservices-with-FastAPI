@@ -12,6 +12,9 @@ dependencies = [
 [tool.pytest.ini_options]
 pythonpath = "."
 
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
 [tool.djlint]
 profile = "jinja"
 
