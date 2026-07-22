@@ -17,14 +17,6 @@ dev = [
     "ty>=0.0.9",
 ]
 
-[tool.ruff]
-line-length = 66
-
-[tool.ruff.lint]
-select = ["I", "E", "F", "Q", "FAST", "UP", "ARG"]
-
-[tool.ruff.lint.pycodestyle]
-max-line-length=120
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
