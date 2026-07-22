@@ -48,7 +48,7 @@ def app_with_limiter(limiter):
 
     @app.exception_handler(RateLimitExceeded)
     async def rate_limit_handler(
-        _request: Request, exc: RateLimitExceeded
+        _request: Request, _exc: RateLimitExceeded
     ):
         from fastapi.responses import JSONResponse
 
@@ -67,7 +67,7 @@ def app_with_limiter(limiter):
 
     @app.get("/test")
     @limiter.limit("2/minute")
-    async def test_endpoint(request: Request, response: Response):
+    async def test_endpoint(request: Request, _response: Response):
         del request
         return {"message": "ok"}
 

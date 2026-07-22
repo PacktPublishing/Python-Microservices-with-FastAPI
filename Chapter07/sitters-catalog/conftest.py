@@ -2,7 +2,7 @@
 Shared test fixtures used across all test modules.
 """
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
@@ -122,7 +122,7 @@ def app(repository: TinyDBRepository) -> FastAPI:
     """Create test FastAPI app with TinyDB repository."""
 
     @asynccontextmanager
-    async def lifespan(_app: FastAPI) -> AsyncIterator[dict]:
+    async def lifespan(_app: FastAPI) -> AsyncGenerator[dict]:
         yield {"repository": repository}
 
     test_app = FastAPI(lifespan=lifespan)

@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TypedDict
 
@@ -30,7 +30,7 @@ container.config.from_yaml("config.yaml")
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[State]:
     # Startup: Initialize service clients from container
     portal_client = container.portal_client()
     reservation_client = container.reservation_client()

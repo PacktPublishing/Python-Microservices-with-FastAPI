@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
@@ -54,7 +54,7 @@ def app_with_rate_limiter(
     """Create app with mock clients and rate limiter."""
 
     @asynccontextmanager
-    async def test_lifespan(app: FastAPI) -> AsyncIterator[dict]:
+    async def test_lifespan(_app: FastAPI) -> AsyncGenerator[dict]:
         yield {
             "portal_client": mock_portal_client,
             "reservation_client": populated_reservation_client,
@@ -105,7 +105,7 @@ def app_with_rate_limiter(
 
     @app.get("/aggregate/health")
     @limiter.limit("5/minute")
-    async def health(request: Request, response: Response):
+    async def health(request: Request, _response: Response):
         del request
         from routers.aggregation import fetch_aggregated_health
 
