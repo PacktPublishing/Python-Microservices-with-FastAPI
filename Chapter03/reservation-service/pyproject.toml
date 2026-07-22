@@ -18,9 +18,6 @@ dev = [
 ]
 
 
-[tool.ruff.lint.isort]
-known-first-party = ["domain", "application", "infrastructure", "presentation"]
-
 [tool.pytest.ini_options]
 pythonpath = ["."]
 

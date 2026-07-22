@@ -23,8 +23,5 @@ dev = [
 ]
 
 
-[tool.ruff.lint.isort]
-known-first-party = ["routers", "services", "rate_limiter", "config", "container"]
-
 [tool.pytest.ini_options]
 pythonpath = ["."]
