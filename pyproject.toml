@@ -17,5 +17,13 @@ select = ["I", "E", "F", "Q", "UP", "FAST", "ARG"]
 [tool.ruff.lint.pycodestyle]
 max-line-length = 120
 
+[tool.ruff.lint.isort]
+known-first-party = [
+    "app",
+    "domain", "application", "infrastructure", "presentation",
+    "features", "shared",
+    "routers", "services", "rate_limiter", "config", "container",
+]
+
 [tool.ruff.lint.per-file-ignores]
 "Chapter05/api-gateway/routers/*.py" = ["ARG001"]
