@@ -1,0 +1,21 @@
+[project]
+name = "quote-service"
+version = "0.1.0"
+description = "Chapter 4: Dependency Injection in FastAPI"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "dependency-injector>=4.46.0",
+  "fastapi[standard]>=0.115.14",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+
+[dependency-groups]
+dev = [
+  "pytest>=8.4.1",
+  "pytest-cov>=6.2.1",
+  "pytest-sugar>=1.0.0",
+  "ruff>=0.12.2",
+]
