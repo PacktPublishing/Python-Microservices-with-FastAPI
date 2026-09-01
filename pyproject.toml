@@ -4,6 +4,7 @@ members = [
     "Chapter02/parents-portal",
     "Chapter03/reservation-service",
     "Chapter05/api-gateway",
+    "Chapter04/quote-service",
     "Chapter07/sitters-catalog",
 ]
 
