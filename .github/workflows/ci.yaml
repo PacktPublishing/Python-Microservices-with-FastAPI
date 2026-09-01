@@ -40,6 +40,8 @@ jobs:
             path: Chapter02/parents-portal
           - name: reservation-service
             path: Chapter03/reservation-service
+          - name: quote-service
+            path: Chapter04/quote-service
           - name: api-gateway
             path: Chapter05/api-gateway
           - name: sitters-catalog
