@@ -1,0 +1,18 @@
+[project]
+name = "authenticator-service"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Giunio", email = "giuniodl@live.it" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "fastapi[standard]>=0.139.2",
+    "itsdangerous>=2.2.0",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic-settings>=2.14.2",
+    "pyjwt>=2.14.0",
+    "sqlalchemy[asyncio]>=2.0.54",
+]

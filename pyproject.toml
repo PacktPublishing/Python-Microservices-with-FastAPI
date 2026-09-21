@@ -6,6 +6,7 @@ members = [
     "Chapter05/api-gateway",
     "Chapter04/quote-service",
     "Chapter07/sitters-catalog",
+    "Chapter08/authenticator-service",
 ]
 
 [tool.ruff]
