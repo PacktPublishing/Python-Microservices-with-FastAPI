@@ -67,9 +67,7 @@ def app_with_limiter(limiter):
 
     @app.get("/test")
     @limiter.limit("2/minute")
-    async def test_endpoint(
-        request: Request, response: Response
-    ):
+    async def test_endpoint(request: Request, response: Response):
         _ = request, response
         return {"message": "ok"}
 
