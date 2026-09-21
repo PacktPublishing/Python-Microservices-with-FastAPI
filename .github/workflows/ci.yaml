@@ -46,6 +46,8 @@ jobs:
             path: Chapter05/api-gateway
           - name: sitters-catalog
             path: Chapter07/sitters-catalog
+          - name: authenticator-service
+            path: Chapter08/authenticator-service
 
     defaults:
       run:
