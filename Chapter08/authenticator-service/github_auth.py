@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from urllib.parse import urlencode
 
 import httpx
@@ -8,6 +9,13 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
 )
+
+
+@dataclass
+class GitHubTokens:
+    access_token: str
+    refresh_token: str
+
 
 
 class GitHubAuthenticator(JWTAuthenticator):
@@ -31,6 +39,9 @@ class GitHubAuthenticator(JWTAuthenticator):
         self.client_id = client_id
         self.client_secret = client_secret
 
+    def _make_http_client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient()
+
     async def resolve_token(self, token: str) -> UserInfo | None:
         try:
             email = await self.get_user_email_from_github(token)
@@ -48,7 +59,7 @@ class GitHubAuthenticator(JWTAuthenticator):
         self, access_token: str
     ) -> str:
         headers = {"Authorization": f"Bearer {access_token}"}
-        async with httpx.AsyncClient() as client:
+        async with self._make_http_client() as client:
             response = await client.get(
                 "https://api.github.com/user/emails",
                 headers=headers,
@@ -71,28 +82,40 @@ class GitHubAuthenticator(JWTAuthenticator):
             f"?{urlencode(params)}"
         )
 
-    async def exchange_code_for_token(
-        self, code: str, redirect_uri: str
-    ) -> tuple[str, str | None]:
-        async with httpx.AsyncClient() as client:
+    async def _request_tokens(
+        self, data: dict[str, str]
+    ) -> GitHubTokens:
+        async with self._make_http_client() as client:
             response = await client.post(
                 "https://github.com/login/oauth/access_token",
-                data={
-                    "client_id": self.client_id,
-                    "client_secret": self.client_secret,
-                    "code": code,
-                    "redirect_uri": redirect_uri,
-                },
+                data=data,
                 headers={"Accept": "application/json"},
             )
         response.raise_for_status()
-        data = response.json()
-        return data["access_token"], data.get("refresh_token")
+        payload = response.json()
+        return GitHubTokens(
+            access_token=payload["access_token"],
+            refresh_token=payload["refresh_token"],
+        )
+
+
+    async def exchange_code_for_token(
+        self, code: str, redirect_uri: str
+    ) -> GitHubTokens:
+        return await self._request_tokens(
+            {
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "code": code,
+                "redirect_uri": redirect_uri,
+            }
+        )
+
 
     async def refresh_access_token(
         self, refresh_token: str
     ) -> tuple[str, str]:
-        async with httpx.AsyncClient() as client:
+        async with self._make_http_client() as client:
             response = await client.post(
                 "https://github.com/login/oauth/access_token",
                 data={
