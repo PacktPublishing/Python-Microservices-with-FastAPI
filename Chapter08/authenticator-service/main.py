@@ -2,7 +2,6 @@ import os
 import secrets
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from dataclasses import replace
 from typing import Annotated, Any, TypedDict
 
 import users
@@ -86,10 +85,34 @@ async def login_for_access_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
-    access_token = await authenticator.create_access_token(
-        replace(user, scopes=form_data.scopes)
+    return Token(
+        access_token=await authenticator.create_access_token(user),
+        refresh_token=await authenticator.create_refresh_token(user),
     )
-    return Token(access_token=access_token)
+
+@app.post("/token/refresh")
+async def refresh_access_token(
+    refresh_token: str,
+    authenticator: Annotated[
+        BaseAuthenticator, Depends(get_authenticator)
+    ],
+) -> Token:
+    user = await authenticator.resolve_refresh_token(
+        refresh_token
+    )
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+    return Token(
+        access_token=await authenticator.create_access_token(
+            user
+        ),
+        refresh_token=await authenticator.create_refresh_token(
+            user
+        ),
+    )
 
 
 @app.get("/users/me", response_model=UserRead)
@@ -170,14 +193,11 @@ async def github_callback(
         )
 
     redirect_uri = str(request.url_for("github_callback"))
-    (
-        access_token,
-        refresh_token,
-    ) = await github_authenticator.exchange_code_for_token(
+    tokens = await github_authenticator.exchange_code_for_token(
         code, redirect_uri
     )
     email = await github_authenticator.get_user_email_from_github(
-        access_token
+        tokens.access_token
     )
 
     user_row = await users.get_user_by_email(db, email=email)
@@ -187,6 +207,6 @@ async def github_callback(
             detail="No account found for this email",
         )
     return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
     )
