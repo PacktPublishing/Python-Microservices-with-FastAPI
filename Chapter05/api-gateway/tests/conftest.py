@@ -62,7 +62,7 @@ def app_with_limiter(limiter):
         )
 
     app.add_middleware(
-        SlowAPIASGIMiddleware  # ty: ignore[invalid-argument-type]
+        SlowAPIASGIMiddleware            
     )
 
     @app.get("/test")

@@ -101,8 +101,7 @@ async def rate_limit_exceeded_handler(
 
 # Add SlowAPI ASGI middleware
 app.add_middleware(
-    SlowAPIASGIMiddleware  # ty: ignore[invalid-argument-type]
-    # due to ty: see updates at https://github.com/astral-sh/ty/issues/1635
+    SlowAPIASGIMiddleware
 )
 
 # Include routers

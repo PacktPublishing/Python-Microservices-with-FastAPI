@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from shared.dependencies import get_repository
 from shared.dto import BabysitterResponseDTO
+from shared.infrastructure.base_repository import BaseRepository
 
 from .handler import get_featured_babysitters
 
@@ -14,7 +15,7 @@ router = APIRouter(
 
 @router.get("/featured")
 async def get_featured_endpoint(
-    repo: Annotated[object, Depends(get_repository)],
+    repo: Annotated[BaseRepository, Depends(get_repository)],
 ) -> list[BabysitterResponseDTO]:
     """Return the top 5 most experienced active babysitters."""
     return await get_featured_babysitters(repo)
