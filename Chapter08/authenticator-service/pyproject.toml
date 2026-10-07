@@ -16,3 +16,14 @@ dependencies = [
     "pyjwt>=2.14.0",
     "sqlalchemy[asyncio]>=2.0.54",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "respx>=0.22.0",
+    "httpx>=0.28.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

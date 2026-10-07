@@ -35,7 +35,7 @@ class FakeAuthenticator(BaseAuthenticator):
 
     async def resolve_token(self, token: str) -> UserInfo | None:
         try:
-            _, email, role = token.split("::")
+            _, email, role, *_ = token.split("::")
         except ValueError:
             return None
         return UserInfo(email=email, role=role)  # ty: ignore[invalid-argument-type]
