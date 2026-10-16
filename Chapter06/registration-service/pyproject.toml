@@ -1,0 +1,32 @@
+[project]
+name = "registration-service"
+version = "0.1.0"
+description = "Chapter 6: SQL databases with SQLAlchemy and FastAPI"
+requires-python = ">=3.13"
+dependencies = [
+    "aiosqlite>=0.21.0",
+    "alembic>=1.16.0",
+    "asyncpg>=0.30.0",
+    "fastapi[standard]>=0.115.14",
+    "pydantic[email]>=2.11.0",
+    "pwdlib[argon2]>=0.2.1",
+    "sqlalchemy[asyncio]>=2.0.41",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.4.1", "ruff>=0.12.2"]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "crud", "database", "main", "models", "schemas", "security",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# get_user_or_404 consumes user_id through dependency injection.
+"main.py" = ["FAST003"]
