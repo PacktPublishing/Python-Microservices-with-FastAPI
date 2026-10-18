@@ -5,12 +5,16 @@ description = "Chapter 9: Building a Customer Support Chatbot with Generative AI
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.143.5",
+    "loguru>=0.7.3",
     "pydantic-ai>=2.57.0",
     "pydantic-settings>=2.16.0",
 ]
 
 [dependency-groups]
 dev = ["pytest>=8.4.1", "ruff>=0.12.2"]
+
+[project.scripts]
+runner = "customer_support.__main__:main"
 
 [tool.pytest.ini_options]
 pythonpath = "."

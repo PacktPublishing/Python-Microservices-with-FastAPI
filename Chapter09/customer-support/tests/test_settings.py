@@ -2,6 +2,7 @@ import os
 from unittest.mock import patch
 
 import pytest
+from loguru import logger
 
 from customer_support import Settings
 from customer_support.config import ENV_PREFIX
@@ -21,8 +22,9 @@ def test_settings() -> None:
         settings = Settings()
         assert settings.api.port == 8000
         assert settings.llm.port == 8001
-        assert settings.api.host == "0.0.0.0"
-        assert settings.llm.host == "0.0.0.0"
+        assert settings.api.host.__str__() == "0.0.0.0"
+        assert settings.llm.host.__str__() == "0.0.0.0"
+    logger.success("PASSED")
 
 
 if __name__ == "__main__":
