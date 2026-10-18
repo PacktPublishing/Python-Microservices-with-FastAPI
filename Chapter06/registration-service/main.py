@@ -48,7 +48,7 @@ async def register_user(
 
 async def get_user_or_404(
     user_id: int,
-    db: DbSession,
+    db: AsyncSession,
 ) -> User:
     user = await crud.get_user_by_id(db, user_id=user_id)
     if user is None:
@@ -59,15 +59,12 @@ async def get_user_or_404(
     return user
 
 
-CurrentUser = Annotated[User, Depends(get_user_or_404)]
-
-
 @app.get(
     "/users/{user_id}",
     response_model=UserResponse,
 )
-async def read_user(user: CurrentUser) -> User:
-    return user
+async def read_user(user_id: int, db: DbSession) -> User:
+    return await get_user_or_404(user_id, db)
 
 
 @app.patch(
@@ -75,10 +72,11 @@ async def read_user(user: CurrentUser) -> User:
     response_model=UserResponse,
 )
 async def edit_user(
-    user: CurrentUser,
+    user_id: int,
     user_in: UserUpdate,
     db: DbSession,
 ) -> User:
+    user = await get_user_or_404(user_id, db)
     return await crud.update_user(
         db,
         db_user=user,
@@ -91,7 +89,8 @@ async def edit_user(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def remove_user(
-    user: CurrentUser,
+    user_id: int,
     db: DbSession,
 ) -> None:
+    user = await get_user_or_404(user_id, db)
     await crud.delete_user(db, db_user=user)

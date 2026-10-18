@@ -131,6 +131,23 @@ def test_read_missing_user(client: TestClient) -> None:
     assert response.json()["detail"] == "User not found"
 
 
+def test_edit_missing_user(client: TestClient) -> None:
+    response = client.patch(
+        "/users/999",
+        json={"full_name": "Sofia Ricci-Moretti"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User not found"
+
+
+def test_remove_missing_user(client: TestClient) -> None:
+    response = client.delete("/users/999")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User not found"
+
+
 def test_edit_user(
     client: TestClient,
     parent_payload: dict[str, str],
