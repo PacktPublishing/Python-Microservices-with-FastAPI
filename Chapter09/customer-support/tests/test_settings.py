@@ -1,17 +1,21 @@
 import os
 from unittest.mock import patch
 
+import pytest
+
 from customer_support import Settings
 from customer_support.config import ENV_PREFIX
 
 
 def test_settings_defaults() -> None:
+    """Test `Settings` falls back to its defaults when no environment variable is set."""
     settings = Settings()
     assert settings.api.port == 8009
     assert str(settings.api.host) == "127.0.0.1"
 
 
 def test_settings_from_environment() -> None:
+    """Test `Settings` can be overridden through environment variables."""
     with patch.dict(
         os.environ,
         {
@@ -26,3 +30,7 @@ def test_settings_from_environment() -> None:
         assert settings.llm.port == 9001
         assert str(settings.api.host) == "0.0.0.0"
         assert str(settings.llm.host) == "10.0.0.5"
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-x", "-s"])
