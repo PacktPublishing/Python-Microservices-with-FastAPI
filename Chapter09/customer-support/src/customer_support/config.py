@@ -25,10 +25,7 @@ class APISettings(BaseSettings):
 
     host: IPvAnyAddress = Field(
         "127.0.0.1",
-        description=(
-            "Webservice bind host. Set to 0.0.0.0 to accept connections from all interfaces, "
-            "e.g. inside a container."
-        ),
+        description="Webservice bind host.",
     )
     port: int = Field(
         8009,
@@ -48,14 +45,11 @@ class LLMSettings(BaseSettings):
 
     host: IPvAnyAddress = Field(
         "127.0.0.1",
-        description=(
-            "Host of the local LLM server the service connects to. "
-            "Defaults to the loopback address, which works when both run on the same machine."
-        ),
+        description="Host of the local LLM server.",
     )
     port: int = Field(
         11434,
-        description="Port number of the local LLM server.",
+        description="Port of the local LLM server.",
         ge=1,
         le=65535,
     )
