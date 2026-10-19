@@ -1,12 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from customer_support.api import app
 
-
-def test_health() -> None:
+def test_health(client: TestClient) -> None:
     """Test the health endpoint returns an `ok` status."""
-    response = TestClient(app).get("/health")
+    response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
