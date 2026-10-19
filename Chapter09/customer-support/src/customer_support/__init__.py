@@ -1,1 +1,3 @@
-from .config import *  # noqa
+from .config import Settings
+
+__all__ = ["Settings"]

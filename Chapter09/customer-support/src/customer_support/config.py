@@ -6,12 +6,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_PREFIX = "CUSTOMER_SUPPORT_"
 COMMON_CONFIG = {
-    "case_sensitive": False,  # from the environment
+    "case_sensitive": False,
     "env_file_encoding": "utf-8",
     "env_file": ".env",
     "extra": "ignore",
-    "env_nested_delimiter": "_",
     "validate_assignment": True,
+    "validate_default": True,
 }
 
 
@@ -20,17 +20,21 @@ class APISettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix=ENV_PREFIX + "API_",
-        **COMMON_CONFIG,  # type: ignore
+        **COMMON_CONFIG,
     )
 
     host: IPvAnyAddress = Field(
-        "0.0.0.0",
-        description="Webservice bind host. Defaults to 0.0.0.0 to accept connections from all interfaces.",
+        "127.0.0.1",
+        description=(
+            "Webservice bind host. Set to 0.0.0.0 to accept connections from all interfaces, "
+            "e.g. inside a container."
+        ),
     )
     port: int = Field(
-        8000,
+        8009,
         description="Webservice port.",
-        ge=0,
+        ge=1,
+        le=65535,
     )
 
 
@@ -39,56 +43,30 @@ class LLMSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix=ENV_PREFIX + "LLM_",
-        **COMMON_CONFIG,  # type: ignore
+        **COMMON_CONFIG,
     )
 
-    hf_token_key: str = Field(
-        "HF_TOKEN",
-        description="Name of the environment variable that contains the HuggingFace token.",
-    )
-    default_llm_id: str = Field(
-        "TinyLlama/TinyLlama_v1.1",
-        description="Default LLM.",
-    )
-    default_llm_mlx_id: str = Field(
-        "mlx-community/quantized-gemma-2b-it",
-        description="Default LLM MLX. For more all available LLMs, see: https://huggingface.co/mlx-community",
-    )
-    system_prompt: str = Field(
-        """
-        You are the customer support for a baby-sitting app.
-        """,
-        description="System prompt for LLM.",
-    )
-    bind_host: IPvAnyAddress = Field(
-        "0.0.0.0",
-        description="Host the LLM server binds to. Defaults to 0.0.0.0 to listen on all interfaces.",
-    )
     host: IPvAnyAddress = Field(
         "127.0.0.1",
         description=(
-            "Host the API container connects to when calling the LLM server. "
-            "Defaults to 127.0.0.1 (loopback), which works when both services run on the same machine."
+            "Host of the local LLM server the service connects to. "
+            "Defaults to the loopback address, which works when both run on the same machine."
         ),
     )
     port: int = Field(
-        8080,
-        description="Port number for the LLM server.",
-        ge=0,
+        11434,
+        description="Port number of the local LLM server.",
+        ge=1,
+        le=65535,
     )
-
-    @property
-    def llm_server(self) -> str:
-        """LLM server URL."""
-        return f"http://{self.host}:{self.port}/v1"
 
 
 class Settings(BaseSettings):
-    """Library cofiguration."""
+    """Library configuration."""
 
     model_config = SettingsConfigDict(
         env_prefix=ENV_PREFIX,
-        **COMMON_CONFIG,  # type: ignore
+        **COMMON_CONFIG,
     )
 
     api: APISettings = Field(
