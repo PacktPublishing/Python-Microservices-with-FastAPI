@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Chapter 9: Building a Customer Support Chatbot with Generative AI "
 requires-python = ">=3.13"
 dependencies = [
+    "chromadb>=1.5.9",
     "fastapi>=0.143.5",
     "loguru>=0.7.3",
     "pydantic-ai>=2.57.0",
