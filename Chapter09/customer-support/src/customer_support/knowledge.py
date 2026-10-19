@@ -2,6 +2,7 @@ __all__ = ["Document", "KnowledgeRepository"]
 
 
 from chromadb.api import ClientAPI
+from chromadb.api.types import QueryResult
 from pydantic import BaseModel
 
 
@@ -39,7 +40,7 @@ class KnowledgeRepository:
         self, query: str, limit: int = 3
     ) -> list[Document]:
         """Return the documents closest in meaning to the query."""
-        result = self._collection.query(
+        result: QueryResult = self._collection.query(
             query_texts=[query],
             n_results=limit,
         )
