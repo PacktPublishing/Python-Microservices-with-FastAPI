@@ -3,7 +3,7 @@ __all__ = ["Document", "KnowledgeRepository"]
 
 from chromadb.api import ClientAPI
 from chromadb.api.types import QueryResult
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
 
 class Document(BaseModel):
@@ -42,9 +42,22 @@ class KnowledgeRepository:
         result: QueryResult = self._collection.query(
             query_texts=[query],
             n_results=limit,
+            include=["documents", "metadatas"],
+        )
+        assert result["documents"] is not None, (
+            "Missing documents."
+        )
+        assert result["metadatas"] is not None, (
+            "Missing metadata."
         )
         return [
-            Document(id=id_, text=text, source=meta["source"])
+            Document(
+                id=id_,
+                text=text,
+                source=TypeAdapter(str).validate_python(
+                    meta["source"], strict=True
+                ),
+            )
             for id_, text, meta in zip(
                 result["ids"][0],
                 result["documents"][0],

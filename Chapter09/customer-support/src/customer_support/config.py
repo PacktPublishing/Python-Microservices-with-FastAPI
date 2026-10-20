@@ -1,11 +1,14 @@
 __all__ = ["Settings"]
 
 
+from ipaddress import ip_address
+from pathlib import Path
+
 from pydantic import Field, IPvAnyAddress
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_PREFIX = "CUSTOMER_SUPPORT_"
-COMMON_CONFIG = {
+COMMON_CONFIG: SettingsConfigDict = {
     "case_sensitive": False,
     "env_file_encoding": "utf-8",
     "env_file": ".env",
@@ -24,7 +27,7 @@ class APISettings(BaseSettings):
     )
 
     host: IPvAnyAddress = Field(
-        "127.0.0.1",
+        ip_address("127.0.0.1"),
         description="Webservice bind host.",
     )
     port: int = Field(
@@ -44,7 +47,7 @@ class LLMSettings(BaseSettings):
     )
 
     host: IPvAnyAddress = Field(
-        "127.0.0.1",
+        ip_address("127.0.0.1"),
         description="Host of the local LLM server.",
     )
     port: int = Field(
@@ -53,6 +56,19 @@ class LLMSettings(BaseSettings):
         ge=1,
         le=65535,
     )
+
+
+class KnowledgeSettings(BaseSettings):
+    """Paths and collection used by ingestion and retrieval."""
+
+    model_config = SettingsConfigDict(
+        env_prefix=ENV_PREFIX + "KNOWLEDGE_",
+        **COMMON_CONFIG,
+    )
+
+    input_file: Path = Path("knowledge.json")
+    storage_path: Path = Path(".chroma")
+    collection: str = "knowledge"
 
 
 class Settings(BaseSettings):
@@ -70,4 +86,8 @@ class Settings(BaseSettings):
     llm: LLMSettings = Field(
         default_factory=LLMSettings,
         description="LLM settings.",
+    )
+    knowledge: KnowledgeSettings = Field(
+        default_factory=KnowledgeSettings,
+        description="Knowledge base settings.",
     )
