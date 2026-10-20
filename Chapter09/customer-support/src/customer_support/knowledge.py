@@ -26,15 +26,14 @@ class KnowledgeRepository:
 
     def add(self, documents: list[Document]) -> None:
         """Embed and store documents, replacing those with the same id."""
-        if not documents:
-            return
-        self._collection.upsert(
-            ids=[doc.id for doc in documents],
-            documents=[doc.text for doc in documents],
-            metadatas=[
-                {"source": doc.source} for doc in documents
-            ],
-        )
+        if documents:
+            self._collection.upsert(
+                ids=[doc.id for doc in documents],
+                documents=[doc.text for doc in documents],
+                metadatas=[
+                    {"source": doc.source} for doc in documents
+                ],
+            )
 
     def search(
         self, query: str, limit: int = 3
