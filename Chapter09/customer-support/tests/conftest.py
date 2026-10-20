@@ -1,3 +1,4 @@
+import shutil
 import typing as ty
 import uuid
 from pathlib import Path
@@ -5,14 +6,11 @@ from pathlib import Path
 import chromadb
 import pytest
 from fastapi.testclient import TestClient
-from pydantic import TypeAdapter
 
 from customer_support import Settings
 from customer_support.api import app
-from customer_support.knowledge import (
-    Document,
-    KnowledgeRepository,
-)
+from customer_support.config import KnowledgeSettings
+from customer_support.knowledge import KnowledgeRepository
 
 
 @pytest.fixture
@@ -37,96 +35,103 @@ def repository() -> KnowledgeRepository:
 
 
 @pytest.fixture
-def source_documents(tests_dir: Path) -> list[Document]:
-    """Load the example passages as expected ingestion results."""
-    source = tests_dir.parent / "knowledge.json"
-    return TypeAdapter(list[Document]).validate_json(
-        source.read_text(encoding="utf-8")
+def source_dir(tmp_path: Path, tests_dir: Path) -> Path:
+    """Copy of the sample `knowledge/` folder that tests may edit."""
+    target = tmp_path / "knowledge"
+    shutil.copytree(tests_dir.parent / "knowledge", target)
+    return target
+
+
+@pytest.fixture
+def knowledge_settings(source_dir: Path) -> KnowledgeSettings:
+    """Default chunking settings over the copied sample folder."""
+    return KnowledgeSettings(source_dir=source_dir)
+
+
+@pytest.fixture
+def small_chunk_settings(source_dir: Path) -> KnowledgeSettings:
+    """Settings whose chunk size forces several chunks per file."""
+    return KnowledgeSettings(
+        source_dir=source_dir, chunk_size=80, chunk_overlap=20
     )
 
 
 @pytest.fixture
-def knowledge_file(
-    tmp_path: Path, source_documents: list[Document]
-) -> Path:
-    """Write a temporary JSON input from the expected passages."""
-    path = tmp_path / "knowledge.json"
-    path.write_bytes(
-        TypeAdapter(list[Document]).dump_json(source_documents)
+def sample_sources(source_dir: Path) -> list[str]:
+    """Relative POSIX paths of the sample Markdown files, sorted."""
+    return sorted(
+        path.relative_to(source_dir).as_posix()
+        for path in source_dir.rglob("*.md")
     )
-    return path
 
 
 @pytest.fixture
-def updated_documents(
-    source_documents: list[Document],
-) -> list[Document]:
-    """Change the cancellation passage while preserving its ID."""
-    updated = source_documents[0].model_copy()
-    updated.text = "Cancellation requires 48 hours of notice."
-    return [updated, *source_documents[1:]]
+def cancellation_source() -> str:
+    """Relative path of the sample cancellation policy."""
+    return "policies/cancellation.md"
+
+
+@pytest.fixture
+def payments_source() -> str:
+    """Relative path of the sample payments FAQ."""
+    return "faq/payments.md"
 
 
 @pytest.fixture
 def retrieval_query() -> str:
-    """Provide the cancellation question for ingestion tests."""
+    """Question that the cancellation policy answers."""
     return "What is the cancellation policy?"
 
 
-@pytest.fixture(
-    params=[
-        "{",
-        '[{"id": "missing-fields"}]',
-        '[{"id": " ", "text": "text", "source": "faq"}]',
-        '[{"id": "blank", "text": " ", "source": "faq"}]',
-        '[{"id": "blank", "text": "text", "source": " "}]',
-    ]
-)
-def invalid_knowledge_file(
-    request: pytest.FixtureRequest, tmp_path: Path
-) -> Path:
-    """Write malformed JSON or a passage with blank fields."""
-    path = tmp_path / "invalid.json"
-    path.write_text(str(request.param), encoding="utf-8")
-    return path
+@pytest.fixture
+def new_policy_text() -> str:
+    """Replacement body for the edited cancellation policy."""
+    return "Cancellation now requires 48 hours of notice."
 
 
 @pytest.fixture
-def empty_knowledge_file(tmp_path: Path) -> Path:
-    """Provide an empty but valid input array."""
-    path = tmp_path / "empty.json"
-    path.write_text("[]", encoding="utf-8")
-    return path
-
-
-@pytest.fixture
-def duplicate_knowledge_file(
-    knowledge_file: Path, source_documents: list[Document]
-) -> Path:
-    """Append a duplicate ID after otherwise valid passages."""
-    documents = [*source_documents, source_documents[0]]
-    knowledge_file.write_bytes(
-        TypeAdapter(list[Document]).dump_json(documents)
+def ignored_file(source_dir: Path) -> Path:
+    """A non-Markdown file the sync must ignore."""
+    path = source_dir / "notes.txt"
+    path.write_text(
+        "Draft notes, not knowledge.", encoding="utf-8"
     )
-    return knowledge_file
+    return path
 
 
 @pytest.fixture
-def missing_knowledge_file(tmp_path: Path) -> Path:
-    """Provide a path that does not exist."""
-    return tmp_path / "missing.json"
+def blank_file(source_dir: Path) -> Path:
+    """A Markdown file with no text, which cannot be chunked."""
+    path = source_dir / "faq" / "blank.md"
+    path.write_text("   \n", encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def empty_source_dir(tmp_path: Path) -> Path:
+    """A folder that exists but holds no Markdown files."""
+    path = tmp_path / "empty"
+    path.mkdir()
+    (path / "readme.txt").write_text("nothing", encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def missing_source_dir(tmp_path: Path) -> Path:
+    """A source folder path that does not exist."""
+    return tmp_path / "missing"
 
 
 @pytest.fixture
 def ingestion_environment(
     monkeypatch: pytest.MonkeyPatch,
-    knowledge_file: Path,
+    source_dir: Path,
     tmp_path: Path,
 ) -> Path:
-    """Configure an isolated persistent import through settings."""
+    """Point the CLI at the copied folder and a temporary store."""
     storage = tmp_path / "chroma"
     prefix = "CUSTOMER_SUPPORT_KNOWLEDGE_"
-    monkeypatch.setenv(prefix + "INPUT_FILE", str(knowledge_file))
+    monkeypatch.setenv(prefix + "SOURCE_DIR", str(source_dir))
     monkeypatch.setenv(prefix + "STORAGE_PATH", str(storage))
     monkeypatch.setenv(prefix + "COLLECTION", "ingestion-test")
     return storage

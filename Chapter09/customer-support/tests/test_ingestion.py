@@ -1,116 +1,198 @@
 from pathlib import Path
 
 import pytest
-from pydantic import TypeAdapter
+from pydantic import ValidationError
+from semantic_text_splitter import MarkdownSplitter
 
-from customer_support.ingestion import (
-    ingest,
-    load_documents,
+from customer_support.config import KnowledgeSettings
+from customer_support.ingestion import chunk_document, sync
+from customer_support.knowledge import KnowledgeRepository
+
+
+def test_first_sync_adds_every_file(
+    knowledge_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    sample_sources: list[str],
+    cancellation_source: str,
+    retrieval_query: str,
+) -> None:
+    """Sync into an empty store and retrieve the right document."""
+    report = sync(knowledge_settings, repository)
+    assert report.added == sample_sources, (
+        "Every Markdown file must be reported as added."
+    )
+    assert repository.sources() == set(sample_sources), (
+        "Every Markdown file must be stored."
+    )
+    best = repository.search(retrieval_query, limit=1)[0]
+    assert best.source == cancellation_source, (
+        "The cancellation question must find the policy."
+    )
+
+
+def test_second_sync_skips_unchanged_files(
+    knowledge_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    sample_sources: list[str],
+) -> None:
+    """Re-run the sync without edits and expect no work at all."""
+    sync(knowledge_settings, repository)
+    report = sync(knowledge_settings, repository)
+    assert report.unchanged == sample_sources, (
+        "Files whose fingerprint matches must be skipped."
+    )
+    assert not report.added + report.updated + report.removed, (
+        "Nothing may be added, updated or removed."
+    )
+
+
+def test_edited_file_replaces_its_chunks(
+    small_chunk_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    source_dir: Path,
+    cancellation_source: str,
+    retrieval_query: str,
+    new_policy_text: str,
+) -> None:
+    """Edit one file and check only its new text is retrievable."""
+    sync(small_chunk_settings, repository)
+    edited = source_dir / cancellation_source
+    edited.write_text(new_policy_text, encoding="utf-8")
+    report = sync(small_chunk_settings, repository)
+    assert report.updated == [cancellation_source], (
+        "Only the edited file must be reported as updated."
+    )
+    texts = [
+        doc.text
+        for doc in repository.search(retrieval_query, limit=100)
+        if doc.source == cancellation_source
+    ]
+    assert texts == [new_policy_text], (
+        "The old chunks of an edited file must be deleted."
+    )
+
+
+def test_deleted_file_is_removed(
+    knowledge_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    source_dir: Path,
+    payments_source: str,
+) -> None:
+    """Delete one file and check its chunks leave the store."""
+    sync(knowledge_settings, repository)
+    (source_dir / payments_source).unlink()
+    report = sync(knowledge_settings, repository)
+    assert report.removed == [payments_source], (
+        "The deleted file must be reported as removed."
+    )
+    assert payments_source not in repository.sources(), (
+        "The deleted file must not be stored anymore."
+    )
+
+
+def test_chunk_settings_change_rechunks(
+    knowledge_settings: KnowledgeSettings,
+    small_chunk_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    sample_sources: list[str],
+) -> None:
+    """Change the chunk size and expect every file re-chunked."""
+    sync(knowledge_settings, repository)
+    report = sync(small_chunk_settings, repository)
+    assert report.updated == sample_sources, (
+        "Chunking settings are part of the fingerprint."
+    )
+
+
+def test_chunks_respect_size_and_ids(
+    small_chunk_settings: KnowledgeSettings,
+    source_dir: Path,
+    cancellation_source: str,
+) -> None:
+    """Split one file and check chunk sizes and numbered IDs."""
+    splitter = MarkdownSplitter(
+        small_chunk_settings.chunk_size,
+        small_chunk_settings.chunk_overlap,
+    )
+    text = (source_dir / cancellation_source).read_text(
+        encoding="utf-8"
+    )
+    chunks = chunk_document(cancellation_source, text, splitter)
+    assert len(chunks) > 1, (
+        "A small chunk size must split the file."
+    )
+    assert all(
+        len(doc.text) <= small_chunk_settings.chunk_size
+        for doc in chunks
+    ), "No chunk may exceed the chunk size."
+    assert [doc.id for doc in chunks] == [
+        f"{cancellation_source}#{n}" for n in range(len(chunks))
+    ], "Chunk IDs must be the source path plus a counter."
+
+
+def test_overlap_must_be_smaller_than_chunk_size(
+    source_dir: Path,
+) -> None:
+    """Reject settings whose overlap is not below the chunk size."""
+    with pytest.raises(ValidationError):
+        KnowledgeSettings(
+            source_dir=source_dir,
+            chunk_size=100,
+            chunk_overlap=100,
+        )
+
+
+def test_non_markdown_files_are_ignored(
+    knowledge_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    ignored_file: Path,
+    sample_sources: list[str],
+) -> None:
+    """Keep a `.txt` file out of the knowledge base."""
+    sync(knowledge_settings, repository)
+    assert repository.sources() == set(sample_sources), (
+        f"{ignored_file.name} must not be ingested."
+    )
+
+
+@pytest.mark.parametrize(
+    ("folder", "error"),
+    [
+        ("missing_source_dir", FileNotFoundError),
+        ("empty_source_dir", ValueError),
+    ],
 )
-from customer_support.knowledge import (
-    Document,
-    KnowledgeRepository,
-)
-
-
-def test_load_documents(
-    knowledge_file: Path, source_documents: list[Document]
-) -> None:
-    """Check that JSON loading preserves IDs, text and sources."""
-    assert load_documents(knowledge_file) == source_documents, (
-        "Loading must preserve every passage and its source."
-    )
-
-
-def test_ingest_twice(
-    knowledge_file: Path,
-    source_documents: list[Document],
+def test_unusable_folder_keeps_the_store(
+    knowledge_settings: KnowledgeSettings,
     repository: KnowledgeRepository,
-    retrieval_query: str,
+    sample_sources: list[str],
+    folder: str,
+    error: type[Exception],
+    request: pytest.FixtureRequest,
 ) -> None:
-    """Import twice and verify one stored record per stable ID."""
-    count = ingest(knowledge_file, repository)
-    assert count == len(source_documents), (
-        "Report submitted records."
+    """Fail on a missing or empty folder instead of deleting all."""
+    sync(knowledge_settings, repository)
+    broken = knowledge_settings.model_copy(
+        update={"source_dir": request.getfixturevalue(folder)}
     )
-    ingest(knowledge_file, repository)
-    results = repository.search(
-        retrieval_query, limit=len(source_documents) + 1
+    with pytest.raises(error):
+        sync(broken, repository)
+    assert repository.sources() == set(sample_sources), (
+        "A failed sync must leave the stored documents untouched."
     )
-    assert sorted(results, key=lambda doc: doc.id) == sorted(
-        source_documents, key=lambda doc: doc.id
-    ), "Repeated imports must not duplicate or change passages."
 
 
-def test_ingest_updated_text(
-    knowledge_file: Path,
-    updated_documents: list[Document],
+def test_blank_file_fails_before_writing(
+    knowledge_settings: KnowledgeSettings,
     repository: KnowledgeRepository,
-    retrieval_query: str,
+    blank_file: Path,
 ) -> None:
-    """Reimport changed text and retrieve the replacement passage."""
-    ingest(knowledge_file, repository)
-    knowledge_file.write_bytes(
-        TypeAdapter(list[Document]).dump_json(updated_documents)
+    """Reject a file with no text before anything is stored."""
+    with pytest.raises(ValueError, match=blank_file.name):
+        sync(knowledge_settings, repository)
+    assert not repository.sources(), (
+        "No file may be stored when one file is invalid."
     )
-    ingest(knowledge_file, repository)
-    results = repository.search(
-        retrieval_query, limit=len(updated_documents)
-    )
-    assert sorted(results, key=lambda doc: doc.id) == sorted(
-        updated_documents, key=lambda doc: doc.id
-    ), (
-        "A stable ID must replace old text and preserve other records."
-    )
-
-
-def test_invalid_input_does_not_write(
-    invalid_knowledge_file: Path,
-    repository: KnowledgeRepository,
-    retrieval_query: str,
-) -> None:
-    """Reject invalid input before writing any records."""
-    with pytest.raises(ValueError):
-        ingest(invalid_knowledge_file, repository)
-    assert not repository.search(retrieval_query), (
-        "Invalid input must leave the collection empty."
-    )
-
-
-def test_duplicate_ids_do_not_write(
-    duplicate_knowledge_file: Path,
-    repository: KnowledgeRepository,
-    retrieval_query: str,
-) -> None:
-    """Reject duplicate IDs before any valid records are stored."""
-    with pytest.raises(ValueError):
-        ingest(duplicate_knowledge_file, repository)
-    assert not repository.search(retrieval_query), (
-        "A duplicate late in the file must not cause a partial import."
-    )
-
-
-def test_empty_input(
-    empty_knowledge_file: Path,
-    repository: KnowledgeRepository,
-    retrieval_query: str,
-) -> None:
-    """Allow an empty array without writing any passage."""
-    assert not load_documents(empty_knowledge_file), (
-        "Load no records."
-    )
-    assert not ingest(empty_knowledge_file, repository), (
-        "An empty import must report no submitted records."
-    )
-    assert not repository.search(retrieval_query), (
-        "An empty import must leave the collection empty."
-    )
-
-
-def test_missing_input(missing_knowledge_file: Path) -> None:
-    """Surface missing files instead of treating them as empty."""
-    with pytest.raises(FileNotFoundError):
-        load_documents(missing_knowledge_file)
 
 
 if __name__ == "__main__":

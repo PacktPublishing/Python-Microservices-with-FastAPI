@@ -3,7 +3,7 @@ __all__ = ["Document", "KnowledgeRepository"]
 
 from chromadb.api import ClientAPI
 from chromadb.api.types import QueryResult
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel
 
 
 class Document(BaseModel):
@@ -35,6 +35,76 @@ class KnowledgeRepository:
                 ],
             )
 
+    def replace_source(
+        self,
+        source: str,
+        documents: list[Document],
+        fingerprint: str,
+    ) -> None:
+        """Swap every stored chunk of `source` for `documents`.
+
+        Args:
+            source (str): Path of the document the chunks belong to.
+            documents (list[Document]): New chunks of that document.
+            fingerprint (str): Hash identifying this version.
+        """
+        self.delete_source(source)
+        if documents:
+            self._collection.upsert(
+                ids=[doc.id for doc in documents],
+                documents=[doc.text for doc in documents],
+                metadatas=[
+                    {
+                        "source": source,
+                        "fingerprint": fingerprint,
+                    }
+                    for _ in documents
+                ],
+            )
+
+    def delete_source(self, source: str) -> None:
+        """Delete every stored chunk of `source`.
+
+        Args:
+            source (str): Path of the document to remove.
+        """
+        self._collection.delete(where={"source": source})
+
+    def sources(self) -> set[str]:
+        """Return the paths of all documents currently stored.
+
+        Returns:
+            set[str]: One entry per stored document.
+        """
+        result = self._collection.get(include=["metadatas"])
+        assert result["metadatas"] is not None, (
+            "Missing metadata."
+        )
+        return {
+            str(meta["source"]) for meta in result["metadatas"]
+        }
+
+    def stored_fingerprint(self, source: str) -> str | None:
+        """Return the fingerprint stored for `source`, if any.
+
+        Args:
+            source (str): Path of the document to look up.
+
+        Returns:
+            str | None: The stored hash, or None if not stored.
+        """
+        result = self._collection.get(
+            where={"source": source},
+            limit=1,
+            include=["metadatas"],
+        )
+        assert result["metadatas"] is not None, (
+            "Missing metadata."
+        )
+        if not result["metadatas"]:
+            return None
+        return str(result["metadatas"][0]["fingerprint"])
+
     def search(
         self, query: str, limit: int = 3
     ) -> list[Document]:
@@ -54,9 +124,7 @@ class KnowledgeRepository:
             Document(
                 id=id_,
                 text=text,
-                source=TypeAdapter(str).validate_python(
-                    meta["source"], strict=True
-                ),
+                source=str(meta["source"]),
             )
             for id_, text, meta in zip(
                 result["ids"][0],

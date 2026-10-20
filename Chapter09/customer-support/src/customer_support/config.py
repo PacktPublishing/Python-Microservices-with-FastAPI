@@ -4,7 +4,7 @@ __all__ = ["Settings"]
 from ipaddress import ip_address
 from pathlib import Path
 
-from pydantic import Field, IPvAnyAddress
+from pydantic import Field, IPvAnyAddress, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_PREFIX = "CUSTOMER_SUPPORT_"
@@ -59,16 +59,29 @@ class LLMSettings(BaseSettings):
 
 
 class KnowledgeSettings(BaseSettings):
-    """Paths and collection used by ingestion and retrieval."""
+    """Source folder, storage and chunking of the knowledge base."""
 
     model_config = SettingsConfigDict(
         env_prefix=ENV_PREFIX + "KNOWLEDGE_",
         **COMMON_CONFIG,
     )
 
-    input_file: Path = Path("knowledge.json")
+    source_dir: Path = Path("knowledge")
     storage_path: Path = Path(".chroma")
     collection: str = "knowledge"
+    chunk_size: int = Field(1000, ge=1)
+    chunk_overlap: int = Field(200, ge=0)
+
+    @model_validator(mode="after")
+    def check_overlap(self) -> "KnowledgeSettings":
+        """Reject an overlap that is not smaller than the chunk size.
+
+        Returns:
+            KnowledgeSettings: The validated settings.
+        """
+        if self.chunk_overlap >= self.chunk_size:
+            raise ValueError("overlap must be < chunk size")
+        return self
 
 
 class Settings(BaseSettings):

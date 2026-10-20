@@ -7,22 +7,22 @@ from pydantic_settings import (
 )
 
 from .config import KnowledgeSettings
-from .ingestion import ingest
+from .ingestion import sync
 from .knowledge import KnowledgeRepository
 
 
 class Ingest(KnowledgeSettings):
-    """Import the knowledge file into persistent ChromaDB."""
+    """Sync the Markdown folder into persistent ChromaDB."""
 
     def cli_cmd(self) -> None:
-        """Open the configured collection and upsert the input file."""
+        """Open the configured collection and sync the folder."""
         client = chromadb.PersistentClient(
             path=str(self.storage_path)
         )
         repository = KnowledgeRepository(
             client, name=self.collection
         )
-        ingest(self.input_file, repository)
+        sync(self, repository)
 
 
 class Runner(BaseSettings):
