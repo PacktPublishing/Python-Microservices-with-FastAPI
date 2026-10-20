@@ -90,8 +90,8 @@ def new_policy_text() -> str:
 
 
 @pytest.fixture
-def ignored_file(source_dir: Path) -> Path:
-    """A non-Markdown file the sync must ignore."""
+def text_file(source_dir: Path) -> Path:
+    """A plain-text document, which the sync must ingest too."""
     path = source_dir / "notes.txt"
     path.write_text(
         "Draft notes, not knowledge.", encoding="utf-8"
@@ -109,10 +109,26 @@ def blank_file(source_dir: Path) -> Path:
 
 @pytest.fixture
 def empty_source_dir(tmp_path: Path) -> Path:
-    """A folder that exists but holds no Markdown files."""
+    """A folder that holds nothing but a hidden system file."""
     path = tmp_path / "empty"
     path.mkdir()
-    (path / "readme.txt").write_text("nothing", encoding="utf-8")
+    (path / ".DS_Store").write_bytes(b"\x00\x00\x00\x01Bud1")
+    return path
+
+
+@pytest.fixture
+def hidden_file(source_dir: Path) -> Path:
+    """A hidden system file the sync must skip."""
+    path = source_dir / ".DS_Store"
+    path.write_bytes(b"\x00\x00\x00\x01Bud1")
+    return path
+
+
+@pytest.fixture
+def unsupported_file(source_dir: Path) -> Path:
+    """A binary file that no parser can read."""
+    path = source_dir / "faq" / "data.bin"
+    path.write_bytes(bytes(range(256)))
     return path
 
 
@@ -162,3 +178,28 @@ def open_repository() -> ty.Callable[[Path], KnowledgeRepository]:
         )
 
     return _open
+
+
+@pytest.fixture
+def nested_settings(
+    tmp_path: Path, tests_dir: Path
+) -> KnowledgeSettings:
+    """Settings for a copy of `knowledge/` under a dot-folder."""
+    target = tmp_path / ".book" / "knowledge"
+    shutil.copytree(tests_dir.parent / "knowledge", target)
+    return KnowledgeSettings(source_dir=target)
+
+
+@pytest.fixture
+def relative_settings(
+    tmp_path: Path,
+    source_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> KnowledgeSettings:
+    """Settings that reach the copied folder through a `..` path."""
+    working_dir = tmp_path / "work"
+    working_dir.mkdir()
+    monkeypatch.chdir(working_dir)
+    return KnowledgeSettings(
+        source_dir=Path("..") / source_dir.name
+    )

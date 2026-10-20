@@ -2,7 +2,9 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
-from semantic_text_splitter import MarkdownSplitter
+from unstructured.partition.common import (
+    UnsupportedFileFormatError,
+)
 
 from customer_support.config import KnowledgeSettings
 from customer_support.ingestion import chunk_document, sync
@@ -110,14 +112,11 @@ def test_chunks_respect_size_and_ids(
     cancellation_source: str,
 ) -> None:
     """Split one file and check chunk sizes and numbered IDs."""
-    splitter = MarkdownSplitter(
-        small_chunk_settings.chunk_size,
-        small_chunk_settings.chunk_overlap,
+    chunks = chunk_document(
+        cancellation_source,
+        source_dir / cancellation_source,
+        small_chunk_settings,
     )
-    text = (source_dir / cancellation_source).read_text(
-        encoding="utf-8"
-    )
-    chunks = chunk_document(cancellation_source, text, splitter)
     assert len(chunks) > 1, (
         "A small chunk size must split the file."
     )
@@ -142,32 +141,54 @@ def test_overlap_must_be_smaller_than_chunk_size(
         )
 
 
-def test_non_markdown_files_are_ignored(
+def test_other_formats_are_ingested(
     knowledge_settings: KnowledgeSettings,
     repository: KnowledgeRepository,
-    ignored_file: Path,
+    text_file: Path,
+    source_dir: Path,
+) -> None:
+    """Ingest a `.txt` file next to the Markdown documents."""
+    report = sync(knowledge_settings, repository)
+    source = text_file.relative_to(source_dir).as_posix()
+    assert source in report.added, (
+        "Files of any supported format must be ingested."
+    )
+
+
+def test_hidden_files_are_skipped(
+    knowledge_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    hidden_file: Path,
     sample_sources: list[str],
 ) -> None:
-    """Keep a `.txt` file out of the knowledge base."""
+    """Keep hidden system files out of the knowledge base."""
     sync(knowledge_settings, repository)
     assert repository.sources() == set(sample_sources), (
-        f"{ignored_file.name} must not be ingested."
+        f"{hidden_file.name} must not be ingested."
+    )
+
+
+def test_unsupported_file_fails_before_writing(
+    knowledge_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    unsupported_file: Path,
+) -> None:
+    """Fail on an unreadable file before anything is stored."""
+    with pytest.raises(UnsupportedFileFormatError):
+        sync(knowledge_settings, repository)
+    assert not repository.sources(), (
+        f"Nothing may be stored when {unsupported_file.name} fails."
     )
 
 
 @pytest.mark.parametrize(
-    ("folder", "error"),
-    [
-        ("missing_source_dir", FileNotFoundError),
-        ("empty_source_dir", ValueError),
-    ],
+    "folder", ["missing_source_dir", "empty_source_dir"]
 )
 def test_unusable_folder_keeps_the_store(
     knowledge_settings: KnowledgeSettings,
     repository: KnowledgeRepository,
     sample_sources: list[str],
     folder: str,
-    error: type[Exception],
     request: pytest.FixtureRequest,
 ) -> None:
     """Fail on a missing or empty folder instead of deleting all."""
@@ -175,7 +196,7 @@ def test_unusable_folder_keeps_the_store(
     broken = knowledge_settings.model_copy(
         update={"source_dir": request.getfixturevalue(folder)}
     )
-    with pytest.raises(error):
+    with pytest.raises(ValueError):
         sync(broken, repository)
     assert repository.sources() == set(sample_sources), (
         "A failed sync must leave the stored documents untouched."
@@ -192,6 +213,30 @@ def test_blank_file_fails_before_writing(
         sync(knowledge_settings, repository)
     assert not repository.sources(), (
         "No file may be stored when one file is invalid."
+    )
+
+
+def test_folder_inside_hidden_folder_is_read(
+    nested_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    sample_sources: list[str],
+) -> None:
+    """Read documents whose project lives inside a dot-folder."""
+    report = sync(nested_settings, repository)
+    assert report.added == sample_sources, (
+        "A dot-folder above `source_dir` must not hide its files."
+    )
+
+
+def test_relative_folder_with_parent_parts_is_read(
+    relative_settings: KnowledgeSettings,
+    repository: KnowledgeRepository,
+    sample_sources: list[str],
+) -> None:
+    """Accept a `source_dir` such as `../knowledge`."""
+    report = sync(relative_settings, repository)
+    assert report.added == sample_sources, (
+        "Relative paths with `..` must give the same source IDs."
     )
 
 
