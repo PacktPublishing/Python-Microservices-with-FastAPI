@@ -59,7 +59,12 @@ class LLMSettings(BaseSettings):
 
 
 class KnowledgeSettings(BaseSettings):
-    """Source folder, storage and chunking of the knowledge base."""
+    """Source folder, storage and chunking of the knowledge base.
+
+    `chunk_size` and `chunk_overlap` count tokens. The default
+    embedding model reads at most 512 tokens, so larger chunks would
+    be truncated when embedded.
+    """
 
     model_config = SettingsConfigDict(
         env_prefix=ENV_PREFIX + "KNOWLEDGE_",
@@ -67,10 +72,11 @@ class KnowledgeSettings(BaseSettings):
     )
 
     source_dir: Path = Path("knowledge")
-    storage_path: Path = Path(".chroma")
-    collection: str = "knowledge"
-    chunk_size: int = Field(1000, ge=1)
-    chunk_overlap: int = Field(200, ge=0)
+    extensions: list[str] = [".md", ".txt", ".pdf", ".docx"]
+    storage_path: Path = Path(".knowledge")
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    chunk_size: int = Field(512, ge=1)
+    chunk_overlap: int = Field(64, ge=0)
 
     @model_validator(mode="after")
     def check_overlap(self) -> "KnowledgeSettings":
