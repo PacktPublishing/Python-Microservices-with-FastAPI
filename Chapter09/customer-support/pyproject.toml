@@ -8,6 +8,8 @@ version = "0.1.0"
 description = "Chapter 9: Building a Customer Support Chatbot with Generative AI "
 requires-python = ">=3.13"
 dependencies = [
+    "aiosqlite>=0.22.1",
+    "sqlalchemy[asyncio]>=2.1.5",
     "chromadb>=1.5.9",
     "docx2txt>=0.9",
     "fastapi>=0.143.5",
@@ -26,11 +28,12 @@ dependencies = [
 dev = [
     "httpx>=0.28.1",
     "pytest>=8.4.1",
+    "pytest-asyncio>=1.4.0",
     "ruff>=0.12.2",
 ]
 
 [tool.pytest.ini_options]
-pythonpath = "."
+asyncio_mode = "auto"
 
 [tool.ruff]
 extend = "../../pyproject.toml"

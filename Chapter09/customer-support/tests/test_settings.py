@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from customer_support import Settings
-from customer_support.config import ENV_PREFIX
+from customer_support.config import ENV_PREFIX, LLMSettings
 
 
 def test_settings_defaults() -> None:
@@ -30,6 +30,15 @@ def test_settings_from_environment() -> None:
         assert settings.llm.port == 9001
         assert str(settings.api.host) == "0.0.0.0"
         assert str(settings.llm.host) == "10.0.0.5"
+
+
+def test_model_settings_from_environment(
+    changed_llm_environment: LLMSettings,
+) -> None:
+    """Read provider, model and both budgets through nested settings."""
+    assert Settings().llm == changed_llm_environment, (
+        "All LLM options must come from the environment."
+    )
 
 
 if __name__ == "__main__":

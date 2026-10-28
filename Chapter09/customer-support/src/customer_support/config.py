@@ -3,6 +3,7 @@ __all__ = ["Settings"]
 
 from ipaddress import ip_address
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, IPvAnyAddress, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -45,6 +46,13 @@ class LLMSettings(BaseSettings):
         env_prefix=ENV_PREFIX + "LLM_",
         **COMMON_CONFIG,
     )
+
+    provider: Literal[
+        "ollama", "openai", "anthropic", "google-gla"
+    ] = "ollama"
+    model: str = Field("qwen3:1.7b", min_length=1)
+    retrieval_limit: int = Field(3, ge=1)
+    request_limit: int = Field(6, ge=1)
 
     host: IPvAnyAddress = Field(
         ip_address("127.0.0.1"),
@@ -90,6 +98,19 @@ class KnowledgeSettings(BaseSettings):
         return self
 
 
+class DatabaseSettings(BaseSettings):
+    """Connection URL for durable conversation history."""
+
+    model_config = SettingsConfigDict(
+        env_prefix=ENV_PREFIX + "DATABASE_",
+        **COMMON_CONFIG,
+    )
+    url: str = Field(
+        "sqlite+aiosqlite:///./conversations.db",
+        description="Database URL for conversation history.",
+    )
+
+
 class Settings(BaseSettings):
     """Library configuration."""
 
@@ -98,6 +119,9 @@ class Settings(BaseSettings):
         **COMMON_CONFIG,
     )
 
+    database: DatabaseSettings = Field(
+        default_factory=DatabaseSettings
+    )
     api: APISettings = Field(
         default_factory=APISettings,
         description="API settings.",
