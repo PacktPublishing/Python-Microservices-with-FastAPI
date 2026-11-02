@@ -20,8 +20,8 @@ class Ingest(KnowledgeSettings):
     """Sync the source folder into the knowledge base."""
 
     def cli_cmd(self) -> None:
-        """Open the knowledge base and sync the folder."""
-        KnowledgeBase(self).sync()
+        """Sync the folder and print the report as JSON."""
+        print(KnowledgeBase(self).sync().model_dump_json())
 
 
 class ChatResult(Answer):

@@ -16,7 +16,6 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
-from loguru import logger
 from pydantic import BaseModel
 
 from .config import KnowledgeSettings
@@ -192,7 +191,6 @@ class KnowledgeBase:
         self._pipeline(docstore).run(documents=documents)
         docstore.persist(str(self._docstore_path))
         report = SyncReport.compare(stored, documents)
-        logger.info("Knowledge base synced: {}", report)
         return report
 
     def search(self, query: str, limit: int = 3) -> list[Chunk]:

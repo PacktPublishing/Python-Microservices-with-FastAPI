@@ -288,30 +288,6 @@ def hosted_settings() -> LLMSettings:
 
 
 @pytest.fixture
-def changed_llm_environment(
-    monkeypatch: pytest.MonkeyPatch,
-) -> LLMSettings:
-    """Non-default configuration read from environment variables."""
-    expected = LLMSettings(
-        provider="openai",
-        model="gpt-4o-mini",
-        retrieval_limit=5,
-        request_limit=7,
-    )
-    prefix = "CUSTOMER_SUPPORT_LLM_"
-    for field in (
-        "provider",
-        "model",
-        "retrieval_limit",
-        "request_limit",
-    ):
-        monkeypatch.setenv(
-            prefix + field.upper(), str(getattr(expected, field))
-        )
-    return expected
-
-
-@pytest.fixture
 def database_settings(tmp_path: Path) -> DatabaseSettings:
     """On-disk SQLite database isolated to this test."""
     return DatabaseSettings(
