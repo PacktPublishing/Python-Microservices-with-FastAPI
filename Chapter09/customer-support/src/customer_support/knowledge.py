@@ -190,8 +190,7 @@ class KnowledgeBase:
         }
         self._pipeline(docstore).run(documents=documents)
         docstore.persist(str(self._docstore_path))
-        report = SyncReport.compare(stored, documents)
-        return report
+        return SyncReport.compare(stored, documents)
 
     def search(self, query: str, limit: int = 3) -> list[Chunk]:
         """Find the chunks closest in meaning to `query`.

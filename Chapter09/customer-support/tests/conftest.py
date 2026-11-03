@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 from uuid import UUID, uuid4
 
+import httpx2
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
@@ -21,7 +22,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 
 from customer_support.agent import build_agent
-from customer_support.api import app
+from customer_support.api import app, get_chat
 from customer_support.chat import SupportChat
 from customer_support.config import (
     DatabaseSettings,
@@ -48,10 +49,11 @@ def tests_dir() -> Path:
 
 
 @pytest.fixture
-def source_dir(tmp_path: Path, tests_dir: Path) -> Path:
+def source_dir(tmp_path: Path) -> Path:
     """Copy of the sample `knowledge/` folder that tests may edit."""
     target = tmp_path / "knowledge"
-    shutil.copytree(tests_dir.parent / "knowledge", target)
+    project = Path(__file__).parent.parent
+    shutil.copytree(project / "knowledge", target)
     return target
 
 
@@ -558,3 +560,31 @@ def cli_model_failure(
 def ipv6_settings() -> LLMSettings:
     """Local model reachable on the IPv6 loopback address."""
     return LLMSettings(host="::1")
+
+
+@pytest.fixture
+async def chat_client(
+    chat: SupportChat, test_model: TestModel
+) -> AsyncIterator[httpx2.AsyncClient]:
+    """Async client whose app uses the test chat and model."""
+    app.dependency_overrides[get_chat] = lambda: chat
+    transport = httpx2.ASGITransport(app=app)
+    with chat.agent.override(model=test_model):
+        async with httpx2.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
+            yield client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def service_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    ingestion_environment: KnowledgeSettings,
+    database_settings: DatabaseSettings,
+) -> KnowledgeSettings:
+    """Point the whole service at temporary storage."""
+    monkeypatch.setenv(
+        "CUSTOMER_SUPPORT_DATABASE_URL", database_settings.url
+    )
+    return ingestion_environment

@@ -236,6 +236,4 @@ class ConversationRepository:
                     for offset, content in enumerate(encoded)
                 ]
             )
-        logger.debug(
-            "Persisted {} new conversation messages", len(encoded)
-        )
+        logger.debug("Persisted {} new messages", len(encoded))
