@@ -9,6 +9,7 @@ members = [
     "Chapter07/sitters-catalog",
     "Chapter08/authenticator-service",
     "Chapter09/customer-support",
+    "Chapter10/support-mcp",
 ]
 
 [tool.ruff]

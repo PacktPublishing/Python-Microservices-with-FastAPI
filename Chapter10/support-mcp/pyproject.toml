@@ -1,0 +1,37 @@
+[build-system]
+requires = ["uv_build>=0.11.0,<0.12.0"]
+build-backend = "uv_build"
+
+[project]
+name = "support-mcp"
+version = "0.1.0"
+description = "Chapter 10: Building an MCP server to expose AI logic across the organisation"
+requires-python = ">=3.13"
+dependencies = [
+    "fastmcp>=4.1.6,<5",
+    "httpx2>=2.16.0",
+    "loguru>=0.7.3",
+    "pydantic-settings>=2.16.0",
+    "pyjwt>=2.15.1",
+]
+
+[dependency-groups]
+dev = [
+    "fastapi>=0.143.5",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.12.2",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "integration: runs the server in a subprocess",
+]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+src = ["src", "tests"]
+
+[tool.ruff.lint.isort]
+known-first-party = []
