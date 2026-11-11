@@ -1,3 +1,8 @@
+import os
+import socket
+import sys
+import threading
+import time
 import typing as ty
 from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime, timedelta
@@ -6,7 +11,9 @@ from unittest.mock import AsyncMock, patch
 import httpx2
 import jwt
 import pytest
+import uvicorn
 from fastmcp import FastMCP
+from fastmcp.client.transports import StdioTransport
 
 from fakes import SUPPORT_URL, FakeSupport, asgi_client
 from support_mcp.config import ServerSettings, SupportSettings
@@ -21,6 +28,8 @@ from support_mcp.identity import (
 )
 from support_mcp.server import build_server
 from support_mcp.support import SupportService
+
+LOCAL_HOST = "127.0.0.1"
 
 
 @pytest.fixture
@@ -307,3 +316,58 @@ def fetched_spec(
 def server_settings() -> ServerSettings:
     """Default address of the HTTP server."""
     return ServerSettings()
+
+
+def free_port() -> int:
+    """Ask the operating system for an unused local port.
+
+    Returns:
+        int:
+            A port nothing listens on.
+    """
+    with socket.socket() as sock:
+        sock.bind((LOCAL_HOST, 0))
+        port: int = sock.getsockname()[1]
+        return port
+
+
+@pytest.fixture
+def running_support(fake_support: FakeSupport) -> Iterator[str]:
+    """Serve the fake support service on a real local port."""
+    port = free_port()
+    config = uvicorn.Config(
+        fake_support.app,
+        host=LOCAL_HOST,
+        port=port,
+        log_level="warning",
+    )
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    while not server.started:
+        time.sleep(0.01)
+    yield f"http://{LOCAL_HOST}:{port}"
+    server.should_exit = True
+    thread.join()
+
+
+@pytest.fixture
+def stdio_transport(
+    running_support: str, user_id: str
+) -> StdioTransport:
+    """Launch the server as a host application would, over stdio."""
+    env = {
+        **os.environ,
+        "SUPPORT_MCP_SUPPORT_URL": running_support,
+    }
+    return StdioTransport(
+        command=sys.executable,
+        args=[
+            "-m",
+            "support_mcp",
+            "stdio",
+            "--local-user",
+            user_id,
+        ],
+        env=env,
+    )
