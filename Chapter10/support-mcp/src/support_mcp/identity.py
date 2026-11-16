@@ -11,8 +11,6 @@ from loguru import logger
 
 from .config import AuthSettings
 
-ALGORITHM = "HS256"
-
 
 def token_subject() -> str | None:
     """Read the user from the access token of the current request.
@@ -47,7 +45,7 @@ def current_user(local_user: str | None) -> str:
 
 
 class AccessTokenVerifier(JWTVerifier):
-    """Accept Chapter 8 access tokens and reject refresh tokens."""
+    """Accept access tokens and reject tokens of any other type."""
 
     async def verify_token(
         self, token: str
@@ -76,7 +74,7 @@ class AccessTokenVerifier(JWTVerifier):
 def build_verifier(
     settings: AuthSettings,
 ) -> AccessTokenVerifier:
-    """Verify tokens signed with the secret shared with Chapter 8.
+    """Verify tokens signed with the server's secret.
 
     Args:
         settings (AuthSettings):
@@ -88,7 +86,7 @@ def build_verifier(
     """
     return AccessTokenVerifier(
         public_key=settings.jwt_secret_key.get_secret_value(),
-        algorithm=ALGORITHM,
+        algorithm=settings.algorithm,
     )
 
 
@@ -111,7 +109,9 @@ def create_token(settings: AuthSettings, subject: str) -> str:
     )
     claims = {"sub": subject, "type": "access", "exp": expires}
     secret = settings.jwt_secret_key.get_secret_value()
-    return jwt.encode(claims, secret, algorithm=ALGORITHM)
+    return jwt.encode(
+        claims, secret, algorithm=settings.algorithm
+    )
 
 
 class ForwardedIdentity(httpx2.Auth):

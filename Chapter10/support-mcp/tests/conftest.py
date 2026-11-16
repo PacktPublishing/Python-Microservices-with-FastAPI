@@ -117,7 +117,7 @@ def auth_settings(secret: str) -> AuthSettings:
 
 @pytest.fixture
 def verifier(auth_settings: AuthSettings) -> AccessTokenVerifier:
-    """Verifier of Chapter 8 access tokens."""
+    """Verifier of the server's access tokens."""
     return build_verifier(auth_settings)
 
 

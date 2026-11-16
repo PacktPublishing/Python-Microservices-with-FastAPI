@@ -5,12 +5,9 @@ import httpx2
 import pytest
 
 from fakes import FakeSupport
+from support_mcp.__main__ import support_client
 from support_mcp.config import SupportSettings
-from support_mcp.support import (
-    SupportError,
-    SupportService,
-    support_client,
-)
+from support_mcp.support import SupportError, SupportService
 
 
 async def test_ask_returns_answer_and_conversation(

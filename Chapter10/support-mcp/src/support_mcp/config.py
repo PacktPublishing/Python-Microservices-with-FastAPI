@@ -1,4 +1,5 @@
 from ipaddress import ip_address
+from typing import Literal
 
 from pydantic import Field, HttpUrl, IPvAnyAddress, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -46,10 +47,11 @@ class Settings(BaseSettings):
 
 
 class AuthSettings(BaseSettings):
-    """Secret shared with the authenticator service of Chapter 8."""
+    """Secret that signs and verifies the server's tokens."""
 
     model_config = SettingsConfigDict(
         env_prefix=ENV_PREFIX + "AUTH_", **COMMON_CONFIG
     )
     jwt_secret_key: SecretStr = Field(min_length=32)
     token_minutes: int = Field(30, ge=1)
+    algorithm: Literal["HS256"] = "HS256"

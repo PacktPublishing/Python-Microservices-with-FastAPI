@@ -4,8 +4,6 @@ import httpx2
 from loguru import logger
 from pydantic import BaseModel
 
-from .config import SupportSettings
-
 
 class SupportAnswer(BaseModel):
     """The support assistant's answer and the conversation holding it."""
@@ -22,29 +20,6 @@ class Conversation(BaseModel):
 
 class SupportError(RuntimeError):
     """The support service could not answer the question."""
-
-
-def support_client(
-    settings: SupportSettings, auth: httpx2.Auth | None = None
-) -> httpx2.AsyncClient:
-    """Create an HTTP client for the support service.
-
-    Args:
-        settings (SupportSettings):
-            Address and timeout of the support service.
-
-        auth (httpx2.Auth | None):
-            Optional hook that adds credentials to every request.
-
-    Returns:
-        httpx2.AsyncClient:
-            A client whose relative URLs point at the support service.
-    """
-    return httpx2.AsyncClient(
-        base_url=str(settings.url),
-        timeout=settings.timeout,
-        auth=auth,
-    )
 
 
 class SupportService:

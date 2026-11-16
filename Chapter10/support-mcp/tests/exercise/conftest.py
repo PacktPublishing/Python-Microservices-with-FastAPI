@@ -16,13 +16,16 @@ from fastmcp import FastMCP
 from fastmcp.client.transports import StdioTransport
 
 from fakes import SUPPORT_URL, FakeSupport, asgi_client
-from support_mcp.config import ServerSettings, SupportSettings
+from support_mcp.config import (
+    AuthSettings,
+    ServerSettings,
+    SupportSettings,
+)
 from support_mcp.generated import (
     build_generated_server,
     fetch_spec,
 )
 from support_mcp.identity import (
-    ALGORITHM,
     AccessTokenVerifier,
     ForwardedIdentity,
 )
@@ -196,12 +199,17 @@ def unreachable_service() -> SupportService:
     return raising_service(httpx2.ConnectError("refused"))
 
 
-def signed(secret: str, claims: dict[str, ty.Any]) -> str:
+def signed(
+    secret: str, algorithm: str, claims: dict[str, ty.Any]
+) -> str:
     """Sign `claims` with `secret`.
 
     Args:
         secret (str):
             Signing secret.
+
+        algorithm (str):
+            Signing algorithm.
 
         claims (dict[str, ty.Any]):
             Claims to encode.
@@ -210,7 +218,7 @@ def signed(secret: str, claims: dict[str, ty.Any]) -> str:
         str:
             The encoded token.
     """
-    return jwt.encode(claims, secret, algorithm=ALGORITHM)
+    return jwt.encode(claims, secret, algorithm=algorithm)
 
 
 @pytest.fixture
@@ -221,7 +229,10 @@ def expires_in() -> datetime:
 
 @pytest.fixture
 def refresh_token(
-    secret: str, user_id: str, expires_in: datetime
+    secret: str,
+    auth_settings: AuthSettings,
+    user_id: str,
+    expires_in: datetime,
 ) -> str:
     """A refresh token, valid but not for calling tools."""
     claims = {
@@ -229,24 +240,29 @@ def refresh_token(
         "type": "refresh",
         "exp": expires_in,
     }
-    return signed(secret, claims)
+    return signed(secret, auth_settings.algorithm, claims)
 
 
 @pytest.fixture
-def expired_token(secret: str, user_id: str) -> str:
+def expired_token(
+    secret: str, auth_settings: AuthSettings, user_id: str
+) -> str:
     """An access token that has expired."""
     expired = datetime.now(UTC) - timedelta(minutes=5)
     claims = {"sub": user_id, "type": "access", "exp": expired}
-    return signed(secret, claims)
+    return signed(secret, auth_settings.algorithm, claims)
 
 
 @pytest.fixture
 def forged_token(
-    other_secret: str, user_id: str, expires_in: datetime
+    other_secret: str,
+    auth_settings: AuthSettings,
+    user_id: str,
+    expires_in: datetime,
 ) -> str:
     """An access token signed with the wrong secret."""
     claims = {"sub": user_id, "type": "access", "exp": expires_in}
-    return signed(other_secret, claims)
+    return signed(other_secret, auth_settings.algorithm, claims)
 
 
 @pytest.fixture

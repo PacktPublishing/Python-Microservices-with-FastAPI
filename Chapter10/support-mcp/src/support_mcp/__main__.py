@@ -1,3 +1,4 @@
+import httpx2
 from fastmcp import FastMCP
 from pydantic import Field
 from pydantic_settings import (
@@ -7,7 +8,7 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
-from .config import AuthSettings, Settings
+from .config import AuthSettings, Settings, SupportSettings
 from .generated import build_generated_server, fetch_spec
 from .identity import (
     ForwardedIdentity,
@@ -15,7 +16,30 @@ from .identity import (
     create_token,
 )
 from .server import build_server
-from .support import SupportService, support_client
+from .support import SupportService
+
+
+def support_client(
+    settings: SupportSettings, auth: httpx2.Auth | None = None
+) -> httpx2.AsyncClient:
+    """Create an HTTP client for the support service.
+
+    Args:
+        settings (SupportSettings):
+            Address and timeout of the support service.
+
+        auth (httpx2.Auth | None):
+            Optional hook that adds credentials to every request.
+
+    Returns:
+        httpx2.AsyncClient:
+            A client whose relative URLs point at the support service.
+    """
+    return httpx2.AsyncClient(
+        base_url=str(settings.url),
+        timeout=settings.timeout,
+        auth=auth,
+    )
 
 
 class Stdio(Settings):
