@@ -50,23 +50,31 @@ async def fetch_spec(
 
 
 def hide_identity(
-    _route: HTTPRoute, component: Component
+    route: HTTPRoute,
+    component: Component,
 ) -> None:
     """Remove the identity header from a generated tool's input.
 
     Args:
-        _route (HTTPRoute):
-            The route the component was generated from; unused.
+        route (HTTPRoute):
+            The route the component was generated from.
 
         component (Component):
             The generated component, changed in place.
     """
-    if isinstance(component, OpenAPITool):
-        schema = component.parameters
-        schema.get("properties", {}).pop(IDENTITY_HEADER, None)
-        required = schema.get("required", [])
-        if IDENTITY_HEADER in required:
-            required.remove(IDENTITY_HEADER)
+    takes_identity = any(
+        param.location == "header"
+        and param.name.lower() == IDENTITY_HEADER
+        for param in route.parameters
+    )
+    if not takes_identity:
+        return
+    if not isinstance(component, OpenAPITool):
+        return
+    schema = component.parameters
+    schema["properties"].pop(IDENTITY_HEADER)
+    if IDENTITY_HEADER in schema["required"]:
+        schema["required"].remove(IDENTITY_HEADER)
 
 
 def build_generated_server(

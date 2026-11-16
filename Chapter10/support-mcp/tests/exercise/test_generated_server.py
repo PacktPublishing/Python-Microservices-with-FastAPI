@@ -1,13 +1,22 @@
 import typing as ty
+from unittest.mock import create_autospec
 from uuid import UUID
 
 import httpx2
 import pytest
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
+from fastmcp.server.providers.openapi import (
+    OpenAPIResource,
+    OpenAPITool,
+)
+from fastmcp.utilities.openapi import HTTPRoute, ParameterInfo
 
 from fakes import Connect, FakeSupport
-from support_mcp.generated import build_generated_server
+from support_mcp.generated import (
+    build_generated_server,
+    hide_identity,
+)
 
 
 def test_spec_describes_support_routes(
@@ -127,3 +136,37 @@ async def test_generated_tools_need_a_token_subject(
 
 if __name__ == "__main__":
     pytest.main([__file__, "-x", "-s"])
+
+
+def identity_route(identity_header: str) -> HTTPRoute:
+    """A route that reads the identity header."""
+    header = ParameterInfo(
+        name=identity_header, location="header", schema={}
+    )
+    return HTTPRoute(
+        path="/x", method="POST", parameters=[header]
+    )
+
+
+def test_hide_identity_skips_routes_without_header(
+    identity_header: str,
+) -> None:
+    """A route without the header keeps its tool unchanged."""
+    schema = {"properties": {identity_header: {}}, "required": []}
+    tool = create_autospec(OpenAPITool, instance=True)
+    tool.parameters = schema
+    hide_identity(HTTPRoute(path="/x", method="GET"), tool)
+    assert identity_header in schema["properties"], (
+        "routes without the header must not be changed"
+    )
+
+
+def test_hide_identity_skips_resources(
+    identity_header: str,
+) -> None:
+    """Resources have no input schema to edit."""
+    resource = create_autospec(OpenAPIResource, instance=True)
+    hide_identity(identity_route(identity_header), resource)
+    assert not resource.method_calls, (
+        "resources must be left untouched"
+    )
