@@ -1,0 +1,41 @@
+[build-system]
+requires = ["uv_build>=0.11.0,<0.12.0"]
+build-backend = "uv_build"
+
+[project]
+name = "platform-analytics"
+version = "0.1.0"
+description = "Chapter 11: Analytics Portal: Exploring Business Intelligence with AI"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.143.5",
+    "loguru>=0.7.3",
+    "matplotlib>=3.10.0",
+    "numpy>=2.3.0",
+    "pandas>=2.3.0",
+    "pydantic-settings>=2.16.0",
+    "scikit-learn>=1.7.0",
+    "uvicorn[standard]>=0.51.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.14.0",
+    "pytest>=8.4.1",
+    "ruff>=0.12.2",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: runs the command line in a subprocess",
+]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+extend-select = ["COM812"]
+
+[tool.ruff.lint.isort]
+known-first-party = []
