@@ -62,7 +62,8 @@ async def test_ask_reports_failing_service(
 ) -> None:
     """An error status becomes a `SupportError` naming the status."""
     with pytest.raises(
-        SupportError, match=re.escape(failure_message)
+        SupportError,
+        match=re.escape(failure_message),
     ):
         await service.ask(user_id, question)
 
@@ -95,10 +96,10 @@ async def test_support_client_uses_settings(
     """The client targets the configured URL with its timeout."""
     async with support_client(support_settings) as client:
         assert client.base_url == httpx2.URL(
-            str(support_settings.url)
+            str(support_settings.url),
         ), "relative URLs must resolve against the configured URL"
         assert client.timeout == httpx2.Timeout(
-            support_settings.timeout
+            support_settings.timeout,
         ), "requests must use the configured timeout"
 
 

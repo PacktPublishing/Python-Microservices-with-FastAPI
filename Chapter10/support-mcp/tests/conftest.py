@@ -55,7 +55,8 @@ def internal_detail() -> str:
 
 @pytest.fixture
 def fake_support(
-    conversation_id: UUID, reply_text: str
+    conversation_id: UUID,
+    reply_text: str,
 ) -> FakeSupport:
     """A healthy fake support service."""
     return FakeSupport(conversation_id, reply_text)
@@ -78,7 +79,8 @@ def service(client: httpx2.AsyncClient) -> SupportService:
 
 @pytest.fixture
 def local_server(
-    service: SupportService, user_id: str
+    service: SupportService,
+    user_id: str,
 ) -> FastMCP:
     """Curated server as served over stdio, for a local user."""
     return build_server(service, local_user=user_id)
@@ -86,18 +88,22 @@ def local_server(
 
 @pytest.fixture
 def broken_service(
-    service: SupportService, internal_detail: str
+    service: SupportService,
+    internal_detail: str,
 ) -> Iterator[SupportService]:
     """A support service that fails with an unexpected error."""
     with patch.object(
-        service, "ask", side_effect=RuntimeError(internal_detail)
+        service,
+        "ask",
+        side_effect=RuntimeError(internal_detail),
     ):
         yield service
 
 
 @pytest.fixture
 def broken_server(
-    broken_service: SupportService, user_id: str
+    broken_service: SupportService,
+    user_id: str,
 ) -> FastMCP:
     """Curated server whose service raises an unexpected error."""
     return build_server(broken_service, local_user=user_id)
@@ -123,7 +129,8 @@ def verifier(auth_settings: AuthSettings) -> AccessTokenVerifier:
 
 @pytest.fixture
 def access_token(
-    auth_settings: AuthSettings, user_id: str
+    auth_settings: AuthSettings,
+    user_id: str,
 ) -> str:
     """A valid access token for the user."""
     return create_token(auth_settings, user_id)
@@ -131,7 +138,8 @@ def access_token(
 
 @pytest.fixture
 def http_server(
-    service: SupportService, verifier: AccessTokenVerifier
+    service: SupportService,
+    verifier: AccessTokenVerifier,
 ) -> FastMCP:
     """Curated server as served over HTTP, with authentication."""
     return build_server(service, auth=verifier)
@@ -154,7 +162,8 @@ def connect_http() -> Connect:
             """Send the client's requests straight to `app`."""
             transport = httpx2.ASGITransport(app=app)
             return httpx2.AsyncClient(
-                transport=transport, **kwargs
+                transport=transport,
+                **kwargs,
             )
 
         transport = StreamableHttpTransport(

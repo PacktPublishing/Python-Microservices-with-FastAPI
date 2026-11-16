@@ -42,7 +42,9 @@ class FakeSupport:
     """Stand-in for the Chapter 9 service, with the same routes."""
 
     def __init__(
-        self, conversation_id: UUID, reply_text: str
+        self,
+        conversation_id: UUID,
+        reply_text: str,
     ) -> None:
         """Build the app and start with no calls and no failure.
 
@@ -73,7 +75,7 @@ class FakeSupport:
         ) -> CreatedConversation:
             """Record the owner and return a new conversation."""
             self.calls.append(
-                Call(path="/conversations", user_id=x_user_id)
+                Call(path="/conversations", user_id=x_user_id),
             )
             return CreatedConversation(
                 id=conversation_id,
@@ -82,7 +84,7 @@ class FakeSupport:
             )
 
         @self.app.post(
-            "/conversations/{conversation_id}/messages"
+            "/conversations/{conversation_id}/messages",
         )
         def ask(
             conversation_id: UUID,
@@ -97,7 +99,7 @@ class FakeSupport:
                     conversation_id=conversation_id,
                     question=body.question,
                     expected_position=body.expected_position,
-                )
+                ),
             )
             if self.fail_status is not None:
                 raise HTTPException(self.fail_status)

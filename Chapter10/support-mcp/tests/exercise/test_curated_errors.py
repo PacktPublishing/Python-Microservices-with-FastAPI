@@ -9,7 +9,8 @@ from fakes import Connect, FakeSupport
 
 
 async def test_server_lists_curated_tool(
-    local_server: FastMCP, curated_tools: set[str]
+    local_server: FastMCP,
+    curated_tools: set[str],
 ) -> None:
     """The server exposes exactly the curated tool."""
     async with Client(local_server) as client:
@@ -43,7 +44,8 @@ async def test_tool_rejects_an_empty_question(
     async with Client(local_server) as client:
         with pytest.raises(ToolError):
             await client.call_tool(
-                "ask_support", {"question": empty_question}
+                "ask_support",
+                {"question": empty_question},
             )
     assert fake_support.calls == [], (
         "an invalid question must not reach the support service"
@@ -51,15 +53,19 @@ async def test_tool_rejects_an_empty_question(
 
 
 async def test_tool_reports_support_failure(
-    failing_server: FastMCP, question: str, failure_message: str
+    failing_server: FastMCP,
+    question: str,
+    failure_message: str,
 ) -> None:
     """A failing support service becomes a readable tool error."""
     async with Client(failing_server) as client:
         with pytest.raises(
-            ToolError, match=re.escape(failure_message)
+            ToolError,
+            match=re.escape(failure_message),
         ):
             await client.call_tool(
-                "ask_support", {"question": question}
+                "ask_support",
+                {"question": question},
             )
 
 
@@ -72,10 +78,12 @@ async def test_tool_refuses_unknown_caller(
     """Without an identity, no request reaches the service."""
     async with Client(anonymous_server) as client:
         with pytest.raises(
-            ToolError, match=unknown_caller_message
+            ToolError,
+            match=unknown_caller_message,
         ):
             await client.call_tool(
-                "ask_support", {"question": question}
+                "ask_support",
+                {"question": question},
             )
     assert fake_support.calls == [], (
         "an anonymous call must not reach the support service"
@@ -83,7 +91,8 @@ async def test_tool_refuses_unknown_caller(
 
 
 @pytest.mark.parametrize(
-    "token_fixture", ["refresh_token", "forged_token"]
+    "token_fixture",
+    ["refresh_token", "forged_token"],
 )
 async def test_http_rejects_invalid_tokens(
     http_server: FastMCP,
@@ -102,7 +111,8 @@ async def test_http_rejects_invalid_tokens(
 
 
 async def test_http_requires_a_token(
-    http_server: FastMCP, connect_http: Connect
+    http_server: FastMCP,
+    connect_http: Connect,
 ) -> None:
     """A client without a token cannot open a session."""
     with pytest.raises(ExceptionGroup) as error:

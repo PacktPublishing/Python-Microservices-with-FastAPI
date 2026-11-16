@@ -48,7 +48,8 @@ class AccessTokenVerifier(JWTVerifier):
     """Accept access tokens and reject tokens of any other type."""
 
     async def verify_token(
-        self, token: str
+        self,
+        token: str,
     ) -> AccessToken | None:
         """Verify the signature and expiry, then the token type.
 
@@ -65,7 +66,7 @@ class AccessTokenVerifier(JWTVerifier):
             return None
         if access.claims.get("type") != "access":
             logger.debug(
-                "Rejected a token that is not an access token"
+                "Rejected a token that is not an access token",
             )
             return None
         return access
@@ -105,12 +106,14 @@ def create_token(settings: AuthSettings, subject: str) -> str:
             The encoded JWT.
     """
     expires = datetime.now(UTC) + timedelta(
-        minutes=settings.token_minutes
+        minutes=settings.token_minutes,
     )
     claims = {"sub": subject, "type": "access", "exp": expires}
     secret = settings.jwt_secret_key.get_secret_value()
     return jwt.encode(
-        claims, secret, algorithm=settings.algorithm
+        claims,
+        secret,
+        algorithm=settings.algorithm,
     )
 
 
@@ -118,7 +121,8 @@ class ForwardedIdentity(httpx2.Auth):
     """Forward the token subject to the support service."""
 
     def auth_flow(
-        self, request: httpx2.Request
+        self,
+        request: httpx2.Request,
     ) -> Generator[httpx2.Request, httpx2.Response]:
         """Set `X-User-Id` from the token, overriding any caller value.
 

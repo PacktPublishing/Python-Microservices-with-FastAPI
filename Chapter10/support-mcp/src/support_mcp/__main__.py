@@ -20,7 +20,8 @@ from .support import SupportService
 
 
 def support_client(
-    settings: SupportSettings, auth: httpx2.Auth | None = None
+    settings: SupportSettings,
+    auth: httpx2.Auth | None = None,
 ) -> httpx2.AsyncClient:
     """Create an HTTP client for the support service.
 
@@ -58,7 +59,8 @@ class Stdio(Settings):
                 local_user=self.local_user,
             )
             await server.run_async(
-                transport="stdio", show_banner=False
+                transport="stdio",
+                show_banner=False,
             )
 
 
@@ -94,7 +96,8 @@ class Token(BaseSettings):
     """Print a development access token for a user."""
 
     subject: str = Field(
-        min_length=1, description="User the token identifies."
+        min_length=1,
+        description="User the token identifies.",
     )
     auth: AuthSettings = Field(default_factory=AuthSettings)
 
@@ -109,7 +112,8 @@ class Generated(Http):
     async def cli_cmd(self) -> None:
         """Download the OpenAPI document, then serve its routes."""
         async with support_client(
-            self.support, auth=ForwardedIdentity()
+            self.support,
+            auth=ForwardedIdentity(),
         ) as client:
             server = build_generated_server(
                 await fetch_spec(client),

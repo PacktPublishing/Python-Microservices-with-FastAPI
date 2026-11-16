@@ -35,7 +35,9 @@ class SupportService:
         self.client = client
 
     async def ask(
-        self, user_id: str, question: str
+        self,
+        user_id: str,
+        question: str,
     ) -> SupportAnswer:
         """Ask a question in a new conversation owned by `user_id`.
 
@@ -57,11 +59,12 @@ class SupportService:
         headers = {"X-User-Id": user_id}
         try:
             created = await self.client.post(
-                "/conversations", headers=headers
+                "/conversations",
+                headers=headers,
             )
             created.raise_for_status()
             conversation = Conversation.model_validate_json(
-                created.content
+                created.content,
             )
             reply = await self.client.post(
                 f"/conversations/{conversation.id}/messages",
@@ -77,15 +80,17 @@ class SupportService:
         except httpx2.HTTPStatusError as error:
             status = error.response.status_code
             raise SupportError(
-                f"Support failed ({status})"
+                f"Support failed ({status})",
             ) from error
         except httpx2.HTTPError as error:
             raise SupportError(
-                "Support is unreachable"
+                "Support is unreachable",
             ) from error
         logger.debug(
-            "Answered in conversation {}", conversation.id
+            "Answered in conversation {}",
+            conversation.id,
         )
         return SupportAnswer(
-            conversation_id=conversation.id, text=reply.text
+            conversation_id=conversation.id,
+            text=reply.text,
         )

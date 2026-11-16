@@ -7,7 +7,9 @@ from support_mcp.identity import AccessTokenVerifier, current_user
 
 
 async def test_verifier_accepts_access_token(
-    verifier: AccessTokenVerifier, access_token: str, user_id: str
+    verifier: AccessTokenVerifier,
+    access_token: str,
+    user_id: str,
 ) -> None:
     """A signed access token is accepted and identifies the user."""
     access = await verifier.verify_token(access_token)
@@ -20,7 +22,8 @@ async def test_verifier_accepts_access_token(
 
 
 async def test_verifier_rejects_refresh_token(
-    verifier: AccessTokenVerifier, refresh_token: str
+    verifier: AccessTokenVerifier,
+    refresh_token: str,
 ) -> None:
     """A refresh token is valid but cannot call tools."""
     assert await verifier.verify_token(refresh_token) is None, (
@@ -29,7 +32,8 @@ async def test_verifier_rejects_refresh_token(
 
 
 async def test_verifier_rejects_expired_token(
-    verifier: AccessTokenVerifier, expired_token: str
+    verifier: AccessTokenVerifier,
+    expired_token: str,
 ) -> None:
     """An expired access token is rejected."""
     assert await verifier.verify_token(expired_token) is None, (
@@ -38,7 +42,8 @@ async def test_verifier_rejects_expired_token(
 
 
 async def test_verifier_rejects_forged_token(
-    verifier: AccessTokenVerifier, forged_token: str
+    verifier: AccessTokenVerifier,
+    forged_token: str,
 ) -> None:
     """A token signed with another secret is rejected."""
     assert await verifier.verify_token(forged_token) is None, (

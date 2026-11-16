@@ -20,7 +20,8 @@ from support_mcp.generated import (
 
 
 def test_spec_describes_support_routes(
-    spec: dict[str, ty.Any], conversations_path: str
+    spec: dict[str, ty.Any],
+    conversations_path: str,
 ) -> None:
     """The downloaded document describes the service's routes."""
     assert conversations_path in spec["paths"], (
@@ -36,7 +37,8 @@ async def test_generated_tools_skip_operational_routes(
 ) -> None:
     """Health and sync routes are excluded, the rest renamed."""
     async with connect_http(
-        generated_server, access_token
+        generated_server,
+        access_token,
     ) as client:
         tools = await client.list_tools()
     assert {tool.name for tool in tools} == generated_tools, (
@@ -52,12 +54,14 @@ async def test_generated_tools_hide_identity_header(
 ) -> None:
     """No generated tool lets the model choose the user."""
     async with connect_http(
-        generated_server, access_token
+        generated_server,
+        access_token,
     ) as client:
         tools = await client.list_tools()
     for tool in tools:
         assert identity_header not in tool.input_schema.get(
-            "properties", {}
+            "properties",
+            {},
         ), f"{tool.name} must not take the user as an argument"
 
 
@@ -74,10 +78,12 @@ async def test_generated_tools_act_as_token_subject(
 ) -> None:
     """Generated tools call the service on behalf of the token subject."""
     async with connect_http(
-        generated_server, access_token
+        generated_server,
+        access_token,
     ) as client:
         created = await client.call_tool(
-            "create_conversation", {}
+            "create_conversation",
+            {},
         )
         answer = await client.call_tool(
             "ask_in_conversation",
@@ -91,13 +97,13 @@ async def test_generated_tools_act_as_token_subject(
         "the created conversation must be returned"
     )
     assert created.structured_content["id"] == str(
-        conversation_id
+        conversation_id,
     ), "the tool must return the conversation the service created"
     assert answer.content[0].text == reply_text, (  # type: ignore[union-attr]
         "the tool must return the service's text answer"
     )
     assert {call.user_id for call in fake_support.calls} == {
-        user_id
+        user_id,
     }, "requests must be made on behalf of the token subject"
 
 
@@ -111,11 +117,13 @@ async def test_generated_tools_ignore_spoofed_identity(
 ) -> None:
     """A signed-in caller cannot claim another user with a header."""
     async with connect_http(
-        generated_server, access_token, spoofed_headers
+        generated_server,
+        access_token,
+        spoofed_headers,
     ) as client:
         await client.call_tool("create_conversation", {})
     assert {call.user_id for call in fake_support.calls} == {
-        user_id
+        user_id,
     }, "the token subject must replace a spoofed X-User-Id"
 
 
@@ -141,10 +149,14 @@ if __name__ == "__main__":
 def identity_route(identity_header: str) -> HTTPRoute:
     """A route that reads the identity header."""
     header = ParameterInfo(
-        name=identity_header, location="header", schema={}
+        name=identity_header,
+        location="header",
+        schema={},
     )
     return HTTPRoute(
-        path="/x", method="POST", parameters=[header]
+        path="/x",
+        method="POST",
+        parameters=[header],
     )
 
 

@@ -19,17 +19,19 @@ async def test_stdio_server_answers_through_support_service(
 ) -> None:
     """A host launches the server, which asks the running service."""
     expected = SupportAnswer(
-        conversation_id=conversation_id, text=reply_text
+        conversation_id=conversation_id,
+        text=reply_text,
     )
     async with Client(stdio_transport) as client:
         result = await client.call_tool(
-            "ask_support", {"question": question}
+            "ask_support",
+            {"question": question},
         )
     assert result.structured_content == expected.model_dump(
-        mode="json"
+        mode="json",
     ), "the answer must come back from the running service"
     assert {call.user_id for call in fake_support.calls} == {
-        user_id
+        user_id,
     }, "the stdio session must act as its local user"
 
 

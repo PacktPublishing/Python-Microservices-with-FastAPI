@@ -16,25 +16,30 @@ async def test_tool_returns_structured_answer(
 ) -> None:
     """The tool returns the answer as structured content."""
     expected = SupportAnswer(
-        conversation_id=conversation_id, text=reply_text
+        conversation_id=conversation_id,
+        text=reply_text,
     )
     async with Client(local_server) as client:
         result = await client.call_tool(
-            "ask_support", {"question": question}
+            "ask_support",
+            {"question": question},
         )
     assert result.structured_content == expected.model_dump(
-        mode="json"
+        mode="json",
     ), "the answer must arrive as structured content"
 
 
 async def test_tool_masks_unexpected_errors(
-    broken_server: FastMCP, question: str, internal_detail: str
+    broken_server: FastMCP,
+    question: str,
+    internal_detail: str,
 ) -> None:
     """Unexpected errors reach the client without their details."""
     async with Client(broken_server) as client:
         with pytest.raises(ToolError) as error:
             await client.call_tool(
-                "ask_support", {"question": question}
+                "ask_support",
+                {"question": question},
             )
     assert internal_detail not in str(error.value), (
         "internal error details must not leak to clients"
@@ -52,10 +57,11 @@ async def test_http_forwards_token_subject(
     """Over HTTP, the token subject is the user sent upstream."""
     async with connect_http(http_server, access_token) as client:
         await client.call_tool(
-            "ask_support", {"question": question}
+            "ask_support",
+            {"question": question},
         )
     assert {call.user_id for call in fake_support.calls} == {
-        user_id
+        user_id,
     }, "requests must be made on behalf of the token subject"
 
 

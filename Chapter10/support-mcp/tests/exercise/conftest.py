@@ -109,7 +109,8 @@ def identity_header() -> str:
 
 @pytest.fixture
 def spoofed_headers(
-    identity_header: str, spoofed_user: str
+    identity_header: str,
+    spoofed_user: str,
 ) -> dict[str, str]:
     """MCP request headers claiming another user's identity."""
     return {identity_header: spoofed_user}
@@ -135,17 +136,19 @@ def support_timeout() -> float:
 
 @pytest.fixture
 def support_settings(
-    support_url: str, support_timeout: float
+    support_url: str,
+    support_timeout: float,
 ) -> SupportSettings:
     """Settings pointing at the fake support service."""
     return SupportSettings.model_validate(
-        {"url": support_url, "timeout": support_timeout}
+        {"url": support_url, "timeout": support_timeout},
     )
 
 
 @pytest.fixture
 def failing_support(
-    fake_support: FakeSupport, failure_status: int
+    fake_support: FakeSupport,
+    failure_status: int,
 ) -> FakeSupport:
     """A fake support service whose message route fails."""
     fake_support.fail_status = failure_status
@@ -158,7 +161,8 @@ async def forwarding_client(
 ) -> AsyncIterator[httpx2.AsyncClient]:
     """Client that forwards the token subject as `X-User-Id`."""
     async with asgi_client(
-        fake_support.app, auth=ForwardedIdentity()
+        fake_support.app,
+        auth=ForwardedIdentity(),
     ) as http:
         yield http
 
@@ -182,8 +186,9 @@ def raising_service(error: Exception) -> SupportService:
     transport = httpx2.MockTransport(handler)
     return SupportService(
         httpx2.AsyncClient(
-            transport=transport, base_url=SUPPORT_URL
-        )
+            transport=transport,
+            base_url=SUPPORT_URL,
+        ),
     )
 
 
@@ -200,7 +205,9 @@ def unreachable_service() -> SupportService:
 
 
 def signed(
-    secret: str, algorithm: str, claims: dict[str, ty.Any]
+    secret: str,
+    algorithm: str,
+    claims: dict[str, ty.Any],
 ) -> str:
     """Sign `claims` with `secret`.
 
@@ -245,7 +252,9 @@ def refresh_token(
 
 @pytest.fixture
 def expired_token(
-    secret: str, auth_settings: AuthSettings, user_id: str
+    secret: str,
+    auth_settings: AuthSettings,
+    user_id: str,
 ) -> str:
     """An access token that has expired."""
     expired = datetime.now(UTC) - timedelta(minutes=5)
@@ -273,12 +282,14 @@ def anonymous_server(service: SupportService) -> FastMCP:
 
 @pytest.fixture
 async def failing_server(
-    failing_support: FakeSupport, user_id: str
+    failing_support: FakeSupport,
+    user_id: str,
 ) -> AsyncIterator[FastMCP]:
     """Curated server whose support service fails."""
     async with asgi_client(failing_support.app) as http:
         yield build_server(
-            SupportService(http), local_user=user_id
+            SupportService(http),
+            local_user=user_id,
         )
 
 
@@ -296,13 +307,16 @@ def generated_server(
 ) -> FastMCP:
     """Server generated from the fake service's OpenAPI."""
     return build_generated_server(
-        spec, forwarding_client, auth=verifier
+        spec,
+        forwarding_client,
+        auth=verifier,
     )
 
 
 @pytest.fixture
 def secret_env(
-    monkeypatch: pytest.MonkeyPatch, secret: str
+    monkeypatch: pytest.MonkeyPatch,
+    secret: str,
 ) -> str:
     """Expose the shared secret to the command line."""
     monkeypatch.setenv("SUPPORT_MCP_AUTH_JWT_SECRET_KEY", secret)
@@ -369,7 +383,8 @@ def running_support(fake_support: FakeSupport) -> Iterator[str]:
 
 @pytest.fixture
 def stdio_transport(
-    running_support: str, user_id: str
+    running_support: str,
+    user_id: str,
 ) -> StdioTransport:
     """Launch the server as a host application would, over stdio."""
     env = {

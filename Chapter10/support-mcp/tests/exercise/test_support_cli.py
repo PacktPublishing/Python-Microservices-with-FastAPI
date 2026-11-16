@@ -8,12 +8,14 @@ from support_mcp.identity import AccessTokenVerifier
 
 
 def test_stdio_serves_over_stdio(
-    run_async: AsyncMock, user_id: str
+    run_async: AsyncMock,
+    user_id: str,
 ) -> None:
     """`stdio` serves the curated server on standard streams."""
     main(["stdio", "--local-user", user_id])
     run_async.assert_awaited_once_with(
-        transport="stdio", show_banner=False
+        transport="stdio",
+        show_banner=False,
     )
 
 
