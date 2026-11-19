@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Chapter 10: Building an MCP server to expose AI logic across the organisation"
 requires-python = ">=3.13"
 dependencies = [
-    "fastmcp>=4.1.6,<5",
+    "fastmcp>=4.2.2,<5",
     "httpx2>=2.16.0",
     "loguru>=0.7.3",
     "pydantic-settings>=2.16.0",
