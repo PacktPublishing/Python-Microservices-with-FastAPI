@@ -19,6 +19,7 @@ CITIES = ["Rome", "Milan", "Naples", "Turin"]
 END = np.datetime64(date(2026, 10, 31), "D")
 BASE_PRICE = {"morning": 30.0, "afternoon": 35.0, "night": 45.0}
 MONDAY = np.datetime64("2024-01-01", "D")
+DAYS = "timedelta64[D]"
 
 
 def simulate(settings: DataSettings) -> Tables:
@@ -41,7 +42,7 @@ def simulate(settings: DataSettings) -> Tables:
     satisfaction = rng.normal(size=n)
     lifetime = rng.exponential(150 * np.exp(satisfaction))
     active_days = np.minimum(lifetime, settings.days - joined)
-    signed_up = start + joined.astype("timedelta64[D]")
+    signed_up = start + joined.astype(DAYS)
     parents = pl.DataFrame(
         {
             "parent_id": np.arange(1, n + 1),
@@ -54,7 +55,7 @@ def simulate(settings: DataSettings) -> Tables:
     counts = rng.poisson(weekly * active_days / 7)
     owner = np.repeat(np.arange(n), counts)
     offset = rng.uniform(size=owner.size) * active_days[owner]
-    starts_at = signed_up[owner] + offset.astype("timedelta64[D]")
+    starts_at = signed_up[owner] + offset.astype(DAYS)
     weekend = (starts_at - MONDAY).astype(int) % 7 >= 4
     slot = np.where(
         weekend,
@@ -103,8 +104,7 @@ def simulate(settings: DataSettings) -> Tables:
         pl.DataFrame(
             {
                 "parent_id": who + 1,
-                "opened_at": signed_up[who]
-                + when.astype("timedelta64[D]"),
+                "opened_at": signed_up[who] + when.astype(DAYS),
                 "topic": rng.choice(TOPICS, who.size),
             },
         )

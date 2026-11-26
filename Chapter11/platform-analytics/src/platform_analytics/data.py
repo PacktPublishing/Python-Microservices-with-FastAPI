@@ -74,21 +74,29 @@ class Tables(BaseModel):
                 Destination folder, created when missing.
         """
         folder.mkdir(parents=True, exist_ok=True)
-        self._save(self.parents, folder / "parents.csv")
-        self._save(self.reservations, folder / "reservations.csv")
-        self._save(self.complaints, folder / "complaints.csv")
+        self._save(self.parents, folder, "parents")
+        self._save(self.reservations, folder, "reservations")
+        self._save(self.complaints, folder, "complaints")
 
     @staticmethod
-    def _save(table: pl.DataFrame, path: Path) -> None:
+    def _save(
+        table: pl.DataFrame,
+        folder: Path,
+        name: str,
+    ) -> None:
         """Write one table as a CSV file.
 
         Args:
             table (pl.DataFrame):
                 The table to write.
 
-            path (Path):
-                Destination file.
+            folder (Path):
+                Destination folder.
+
+            name (str):
+                Name of the table, and of its file without extension.
         """
+        path = folder / f"{name}.csv"
         table.write_csv(path)
         logger.debug("Saved {} rows to {}", len(table), path)
 
