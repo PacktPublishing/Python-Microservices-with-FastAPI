@@ -5,7 +5,7 @@ from pathlib import Path
 import patito as pt
 import polars as pl
 from loguru import logger
-from pydantic import AfterValidator, BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 Status = ty.Literal["confirmed", "refused", "cancelled"]
 Slot = ty.Literal["morning", "afternoon", "night"]
@@ -45,45 +45,26 @@ class Complaint(pt.Model):
     topic: Topic
 
 
-def enforce(model: type[pt.Model]) -> AfterValidator:
-    """Build a Pydantic validator that checks a table against `model`.
-
-    Args:
-        model (type[pt.Model]):
-            The contract every row of the table must follow.
-
-    Returns:
-        AfterValidator:
-            Returns the table unchanged, or raises a `ValueError` that lists every broken rule.
-    """
-
-    def validate(frame: pl.DataFrame) -> pl.DataFrame:
-        """Check the columns, types and rules of `frame`.
-
-        Args:
-            frame (pl.DataFrame):
-                The table to validate.
-
-        Returns:
-            pl.DataFrame:
-                The same table, now known to be valid.
-        """
-        model.validate(frame)
-        return frame
-
-    return AfterValidator(validate)
-
-
 class Tables(BaseModel):
     """The three tables the analytics portal reads, validated."""
 
     model_config = FROZEN
-    parents: ty.Annotated[pl.DataFrame, enforce(Parent)]
-    reservations: ty.Annotated[
-        pl.DataFrame,
-        enforce(Reservation),
-    ]
-    complaints: ty.Annotated[pl.DataFrame, enforce(Complaint)]
+    parents: pt.DataFrame[Parent]
+    reservations: pt.DataFrame[Reservation]
+    complaints: pt.DataFrame[Complaint]
+
+    @model_validator(mode="after")
+    def check(self) -> ty.Self:
+        """Check every table against its model.
+
+        Returns:
+            Tables:
+                The same tables, now known to be valid.
+        """
+        self.parents.validate()
+        self.reservations.validate()
+        self.complaints.validate()
+        return self
 
     def save(self, folder: Path) -> None:
         """Write every table as a CSV file in `folder`.
@@ -93,12 +74,9 @@ class Tables(BaseModel):
                 Destination folder, created when missing.
         """
         folder.mkdir(parents=True, exist_ok=True)
-        for table, name in (
-            (self.parents, "parents"),
-            (self.reservations, "reservations"),
-            (self.complaints, "complaints"),
-        ):
-            self._save(table, folder / f"{name}.csv")
+        self._save(self.parents, folder / "parents.csv")
+        self._save(self.reservations, folder / "reservations.csv")
+        self._save(self.complaints, folder / "complaints.csv")
 
     @staticmethod
     def _save(table: pl.DataFrame, path: Path) -> None:
@@ -139,18 +117,22 @@ class Tables(BaseModel):
         )
 
     @staticmethod
-    def _load(path: Path, model: type[pt.Model]) -> pl.DataFrame:
+    def _load[M: pt.Model](
+        path: Path,
+        model: type[M],
+    ) -> pt.DataFrame[M]:
         """Read one CSV file with the column types of `model`.
 
         Args:
             path (Path):
                 The CSV file to read.
 
-            model (type[pt.Model]):
+            model (type[M]):
                 The model that declares the type of each column.
 
         Returns:
-            pl.DataFrame:
+            pt.DataFrame[M]:
                 The table, typed as the model declares.
         """
-        return pl.read_csv(path, schema_overrides=model.dtypes)
+        frame = pl.read_csv(path, schema_overrides=model.dtypes)
+        return model.DataFrame(frame)

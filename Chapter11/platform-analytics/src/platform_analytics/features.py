@@ -46,7 +46,7 @@ def parent_features(tables: Tables, as_of: date) -> pl.DataFrame:
     """
     starts_at = pl.col("starts_at")
     since = as_of - WINDOW
-    bookings = (
+    bookings: pl.DataFrame = (
         tables.reservations.filter(starts_at <= as_of)
         .group_by("parent_id")
         .agg(
@@ -62,7 +62,7 @@ def parent_features(tables: Tables, as_of: date) -> pl.DataFrame:
         .filter(pl.col("reservations_90d") > 0)
     )
     opened_at = pl.col("opened_at")
-    complaints = (
+    complaints: pl.DataFrame = (
         tables.complaints.filter(
             opened_at.is_between(since, as_of, "right"),
         )

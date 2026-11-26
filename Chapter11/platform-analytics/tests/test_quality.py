@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from platform_analytics.config import QualitySettings
-from platform_analytics.data import Tables
+from platform_analytics.data import Reservation, Tables
 from platform_analytics.model import ChurnModel
 from platform_analytics.quality import check_drift, psi
 
@@ -73,7 +73,9 @@ def test_corrupted_reservations_are_refused(
     with pytest.raises(ValidationError, match=column):
         Tables(
             parents=tables.parents,
-            reservations=corrupt(tables.reservations),
+            reservations=Reservation.DataFrame(
+                corrupt(tables.reservations),
+            ),
             complaints=tables.complaints,
         )
 

@@ -84,17 +84,18 @@ def complaint_rate(tables: Tables) -> pl.DataFrame:
         pl.DataFrame:
             One row per month and one column per complaint topic.
     """
-    confirmed = (
+    confirmed: pl.DataFrame = (
         tables.reservations.filter(CONFIRMED)
         .group_by(month_of("starts_at"))
         .agg(pl.len().alias("confirmed"))
     )
     topic = pl.col("topic")
+    per_topic: pl.DataFrame = tables.complaints.group_by(
+        month_of("opened_at"),
+    ).agg(*[(topic == t).sum().alias(t) for t in TOPICS])
     rates = pl.col(TOPICS) / pl.col("confirmed") * 100
     return (
-        tables.complaints.group_by(month_of("opened_at"))
-        .agg(*[(topic == t).sum().alias(t) for t in TOPICS])
-        .join(confirmed, on="month")
+        per_topic.join(confirmed, on="month")
         .with_columns(rates.round(2))
         .drop("confirmed")
         .sort("month")

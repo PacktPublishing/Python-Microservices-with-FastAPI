@@ -119,7 +119,7 @@ def simulate(settings: DataSettings) -> Tables:
         len(complaints),
     )
     return Tables(
-        parents=parents,
-        reservations=reservations,
-        complaints=complaints,
+        parents=Parent.DataFrame(parents),
+        reservations=Reservation.DataFrame(reservations),
+        complaints=Complaint.DataFrame(complaints),
     )

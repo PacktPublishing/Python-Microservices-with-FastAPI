@@ -4,7 +4,7 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from platform_analytics.data import Tables
+from platform_analytics.data import Complaint, Reservation, Tables
 from platform_analytics.features import (
     latest_day,
     parent_features,
@@ -16,11 +16,15 @@ def test_features_ignore_the_future(tables: Tables) -> None:
     as_of = latest_day(tables) - timedelta(days=60)
     past_only = Tables(
         parents=tables.parents,
-        reservations=tables.reservations.filter(
-            pl.col("starts_at") <= as_of,
+        reservations=Reservation.DataFrame(
+            tables.reservations.filter(
+                pl.col("starts_at") <= as_of,
+            ),
         ),
-        complaints=tables.complaints.filter(
-            pl.col("opened_at") <= as_of,
+        complaints=Complaint.DataFrame(
+            tables.complaints.filter(
+                pl.col("opened_at") <= as_of,
+            ),
         ),
     )
     assert_frame_equal(
