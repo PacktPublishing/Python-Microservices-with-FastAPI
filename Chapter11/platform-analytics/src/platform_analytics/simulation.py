@@ -43,7 +43,7 @@ def simulate(settings: DataSettings) -> Tables:
     offset = rng.uniform(size=owner.size) * active_days[owner]
     starts_at = parents["signed_up"].to_numpy()[owner]
     starts_at = starts_at + pd.to_timedelta(offset, "D")
-    weekend = np.asarray(starts_at.dayofweek >= 4)
+    weekend = np.asarray(starts_at.day_of_week >= 4)
     slot = np.where(
         weekend,
         rng.choice(SLOTS, owner.size, p=[0.2, 0.4, 0.4]),
