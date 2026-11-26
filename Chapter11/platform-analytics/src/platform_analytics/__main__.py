@@ -1,5 +1,7 @@
+import polars as pl
 import uvicorn
 from loguru import logger
+from pydantic import ValidationError
 from pydantic_settings import (
     BaseSettings,
     CliApp,
@@ -12,7 +14,6 @@ from .config import Settings
 from .data import Tables
 from .features import training_set
 from .model import train
-from .quality import check_reservations
 from .simulation import simulate
 
 
@@ -29,13 +30,15 @@ class Train(Settings):
 
     def cli_cmd(self) -> None:
         """Refuse bad data, then train, check and save the model."""
-        tables = Tables.load(self.data.folder)
-        report = check_reservations(
-            tables.reservations,
-            self.quality,
-        )
-        if not report.ok:
-            raise SystemExit("Reservations failed their checks")
+        try:
+            tables = Tables.load(self.data.folder)
+        except (
+            ValidationError,
+            pl.exceptions.PolarsError,
+        ) as error:
+            raise SystemExit(
+                f"Refusing to train: {error}",
+            ) from error
         features, labels = training_set(
             tables,
             self.model.horizon_days,

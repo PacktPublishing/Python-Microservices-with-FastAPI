@@ -1,13 +1,10 @@
 import numpy as np
-import pandas as pd
+import polars as pl
 from loguru import logger
 from pydantic import BaseModel, computed_field
 
 from .config import QualitySettings
-from .data import SLOTS, STATUSES
 from .features import FEATURES
-
-REQUIRED = ["reservation_id", "parent_id", "starts_at", "status"]
 
 
 class QualityReport(BaseModel):
@@ -21,44 +18,6 @@ class QualityReport(BaseModel):
     def ok(self) -> bool:
         """Whether the check found no problem."""
         return not self.problems
-
-
-def check_reservations(
-    reservations: pd.DataFrame,
-    settings: QualitySettings,
-) -> QualityReport:
-    """Check the reservations table against its contract.
-
-    Args:
-        reservations (pd.DataFrame):
-            The reservations table.
-
-        settings (QualitySettings):
-            Maximum share of nulls in a required column.
-
-    Returns:
-        QualityReport:
-            Every violated rule, as a readable message.
-    """
-    problems = []
-    null_rates = reservations[REQUIRED].isna().mean()
-    for column, rate in null_rates.items():
-        if rate > settings.max_null_rate:
-            problems.append(f"{column} is {rate:.0%} null")
-    if reservations["reservation_id"].duplicated().any():
-        problems.append("reservation_id has duplicates")
-    if not reservations["status"].dropna().isin(STATUSES).all():
-        problems.append("status has unknown values")
-    if not reservations["time_slot"].isin(SLOTS).all():
-        problems.append("time_slot has unknown values")
-    if (reservations["price"] <= 0).any():
-        problems.append("price is not always positive")
-    ratings = reservations["rating"].dropna()
-    if not ratings.between(1, 5).all():
-        problems.append("rating is outside 1 to 5")
-    for problem in problems:
-        logger.warning("Reservations: {}", problem)
-    return QualityReport(check="reservations", problems=problems)
 
 
 def psi(reference: np.ndarray, current: np.ndarray) -> float:
@@ -89,17 +48,17 @@ def psi(reference: np.ndarray, current: np.ndarray) -> float:
 
 
 def check_drift(
-    reference: pd.DataFrame,
-    current: pd.DataFrame,
+    reference: pl.DataFrame,
+    current: pl.DataFrame,
     settings: QualitySettings,
 ) -> QualityReport:
     """Compare today's features with the model's training data.
 
     Args:
-        reference (pd.DataFrame):
+        reference (pl.DataFrame):
             The features the model was trained on.
 
-        current (pd.DataFrame):
+        current (pl.DataFrame):
             The features the model scores now.
 
         settings (QualitySettings):
@@ -112,8 +71,8 @@ def check_drift(
     problems = []
     for column in FEATURES:
         score = psi(
-            reference[column].dropna().to_numpy(),
-            current[column].dropna().to_numpy(),
+            reference[column].drop_nulls().to_numpy(),
+            current[column].drop_nulls().to_numpy(),
         )
         logger.debug("PSI of {}: {:.3f}", column, score)
         if score > settings.max_drift:

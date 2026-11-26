@@ -1,90 +1,101 @@
-import pandas as pd
+import polars as pl
 
-from .data import SLOTS, Tables
+from .data import SLOTS, TOPICS, Tables
 
-WEEK_DAYS = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-]
+CONFIRMED = pl.col("status") == "confirmed"
 
 
-def weekly_activity(reservations: pd.DataFrame) -> pd.DataFrame:
-    """Count reservations, confirmation rate and revenue per week.
+def weekly_activity(reservations: pl.DataFrame) -> pl.DataFrame:
+    """Summarize reservations, confirmations and revenue per week.
 
     Args:
-        reservations (pd.DataFrame):
+        reservations (pl.DataFrame):
             The reservations table.
 
     Returns:
-        pd.DataFrame:
-            One row per week, indexed by the week's last day.
+        pl.DataFrame:
+            One row per week, labelled by its Sunday.
     """
-    confirmed = reservations["status"].eq("confirmed")
-    revenue = reservations["price"].where(confirmed, 0.0)
+    week = (
+        pl.col("starts_at").dt.truncate("1w").dt.offset_by("6d")
+    )
     return (
-        reservations.assign(confirmed=confirmed, revenue=revenue)
-        .groupby(pd.Grouper(key="starts_at", freq="W"))
+        reservations.group_by(week.alias("week"))
         .agg(
-            reservations=("reservation_id", "size"),
-            confirmation_rate=("confirmed", "mean"),
-            revenue=("revenue", "sum"),
+            pl.len().alias("reservations"),
+            CONFIRMED.mean().alias("confirmation_rate"),
+            pl.col("price")
+            .filter(CONFIRMED)
+            .sum()
+            .alias("revenue"),
         )
-        .rename_axis("week")
+        .sort("week")
     )
 
 
-def slot_demand(reservations: pd.DataFrame) -> pd.DataFrame:
+def slot_demand(reservations: pl.DataFrame) -> pl.DataFrame:
     """Count reservations per day of the week and time slot.
 
     Args:
-        reservations (pd.DataFrame):
+        reservations (pl.DataFrame):
             The reservations table.
 
     Returns:
-        pd.DataFrame:
-            Days of the week as rows, time slots as columns.
+        pl.DataFrame:
+            One row per day, from Monday, and one column per slot.
     """
+    starts_at = pl.col("starts_at")
+    day = starts_at.dt.weekday().alias("day")
+    day_name = starts_at.first().dt.strftime("%A")
+    slot = pl.col("time_slot")
     return (
-        reservations.assign(
-            week_day=reservations["starts_at"].dt.day_name(),
+        reservations.group_by(day)
+        .agg(
+            day_name.alias("week_day"),
+            *[(slot == s).sum().alias(s) for s in SLOTS],
         )
-        .pivot_table(
-            index="week_day",
-            columns="time_slot",
-            values="reservation_id",
-            aggfunc="size",
-            fill_value=0,
-        )
-        .reindex(index=WEEK_DAYS, columns=SLOTS, fill_value=0)
+        .sort("day")
+        .drop("day")
     )
 
 
-def complaint_rate(tables: Tables) -> pd.DataFrame:
-    """Compute complaints per 100 confirmed reservations per month.
+def month_of(column: str) -> pl.Expr:
+    """Move each date of `column` to the first day of its month.
+
+    Args:
+        column (str):
+            A column of dates.
+
+    Returns:
+        pl.Expr:
+            The months, in a column named `month`.
+    """
+    return pl.col(column).dt.truncate("1mo").alias("month")
+
+
+def complaint_rate(tables: Tables) -> pl.DataFrame:
+    """Compute complaints per 100 confirmed reservations, per month.
 
     Args:
         tables (Tables):
-            The platform's tables.
+            The reservations and the complaints.
 
     Returns:
-        pd.DataFrame:
+        pl.DataFrame:
             One row per month and one column per complaint topic.
     """
-    reservations = tables.reservations
-    is_confirmed = reservations["status"] == "confirmed"
-    confirmed = reservations[is_confirmed]
-    per_month = confirmed.groupby(
-        confirmed["starts_at"].dt.to_period("M"),
-    ).size()
-    complaints = tables.complaints
-    by_topic = pd.crosstab(
-        complaints["opened_at"].dt.to_period("M"),
-        complaints["topic"],
+    confirmed = (
+        tables.reservations.filter(CONFIRMED)
+        .group_by(month_of("starts_at"))
+        .agg(pl.len().alias("confirmed"))
     )
-    rate = by_topic.div(per_month, axis="index")
-    return rate.mul(100).round(2)
+    topic = pl.col("topic")
+    rates = pl.col(TOPICS) / pl.col("confirmed") * 100
+    return (
+        tables.complaints.group_by(month_of("opened_at"))
+        .agg(*[(topic == t).sum().alias(t) for t in TOPICS])
+        .join(confirmed, on="month")
+        .with_columns(rates.round(2))
+        .drop("confirmed")
+        .sort("month")
+    )

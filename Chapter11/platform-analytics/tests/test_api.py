@@ -1,8 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from platform_analytics.exploration import WEEK_DAYS
-
 
 def test_weekly_activity(client: TestClient) -> None:
     """The weekly endpoint returns one row per week with a share."""
@@ -13,10 +11,13 @@ def test_weekly_activity(client: TestClient) -> None:
     )
 
 
-def test_slot_demand(client: TestClient) -> None:
+def test_slot_demand(
+    client: TestClient,
+    week_days: list[str],
+) -> None:
     """The slots endpoint returns the days in calendar order."""
     rows = client.get("/activity/slots").json()
-    assert [row["week_day"] for row in rows] == WEEK_DAYS, (
+    assert [row["week_day"] for row in rows] == week_days, (
         "every day should appear once, in order"
     )
 
@@ -73,12 +74,9 @@ def test_risk_of_unknown_parent(
 
 
 def test_quality_reports(client: TestClient) -> None:
-    """The quality endpoint reports both checks as passing."""
+    """The quality endpoint reports the drift check as passing."""
     reports = client.get("/quality").json()
-    assert {r["check"] for r in reports} == {
-        "reservations",
-        "drift",
-    }
+    assert {r["check"] for r in reports} == {"drift"}
     assert all(r["ok"] for r in reports), (
         f"checks failed: {reports}"
     )

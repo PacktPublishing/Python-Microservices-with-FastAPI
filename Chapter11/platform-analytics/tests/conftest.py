@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pandas as pd
+import polars as pl
 import pytest
 from fastapi.testclient import TestClient
 
@@ -75,14 +75,14 @@ def horizon(settings: Settings) -> int:
 def labelled(
     tables: Tables,
     horizon: int,
-) -> tuple[pd.DataFrame, pd.Series]:
+) -> tuple[pl.DataFrame, pl.Series]:
     """Features and churn labels of the simulated platform."""
     return training_set(tables, horizon)
 
 
 @pytest.fixture
 def model(
-    labelled: tuple[pd.DataFrame, pd.Series],
+    labelled: tuple[pl.DataFrame, pl.Series],
     settings: Settings,
 ) -> ChurnModel:
     """A churn model trained on the simulated platform."""
@@ -91,7 +91,7 @@ def model(
 
 
 @pytest.fixture
-def current(tables: Tables) -> pd.DataFrame:
+def current(tables: Tables) -> pl.DataFrame:
     """Features of the parents active on the last day."""
     return parent_features(tables, latest_day(tables))
 
@@ -144,3 +144,17 @@ def unknown_parent() -> int:
 def shift() -> float:
     """An offset large enough to move a whole distribution."""
     return 1000.0
+
+
+@pytest.fixture
+def week_days() -> list[str]:
+    """The days of the week, in calendar order from Monday."""
+    return [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]

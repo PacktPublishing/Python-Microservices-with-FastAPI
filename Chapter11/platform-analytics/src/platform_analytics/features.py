@@ -1,5 +1,7 @@
-import numpy as np
-import pandas as pd
+import typing as ty
+from datetime import date, timedelta
+
+import polars as pl
 
 from .data import Tables
 
@@ -11,106 +13,102 @@ FEATURES = [
     "avg_rating",
     "complaints_90d",
 ]
-WINDOW = pd.Timedelta(90, unit="D")
+WINDOW = timedelta(days=90)
 
 
-def latest_day(tables: Tables) -> pd.Timestamp:
-    """Return the day of the most recent reservation.
+def latest_day(tables: Tables) -> date:
+    """Return the day of the last reservation in the data.
 
     Args:
         tables (Tables):
             The platform's tables.
 
     Returns:
-        pd.Timestamp:
-            The day the data ends.
+        date:
+            The last day with a reservation.
     """
-    return tables.reservations["starts_at"].max()
+    return ty.cast(date, tables.reservations["starts_at"].max())
 
 
-def parent_features(
-    tables: Tables,
-    as_of: pd.Timestamp,
-) -> pd.DataFrame:
-    """Describe every parent active in the 90 days before `as_of`.
-
-    Only rows dated on or before `as_of` are read, so the features never see the future.
+def parent_features(tables: Tables, as_of: date) -> pl.DataFrame:
+    """Describe every active parent with rows dated up to `as_of`.
 
     Args:
         tables (Tables):
             The platform's tables.
 
-        as_of (pd.Timestamp):
-            The day the features describe.
+        as_of (date):
+            The day the features describe; later rows are ignored.
 
     Returns:
-        pd.DataFrame:
-            One row per active parent, one column per feature.
+        pl.DataFrame:
+            One row per parent with a reservation in the last 90 days.
     """
-    reservations = tables.reservations
-    past = reservations[reservations["starts_at"] <= as_of]
-    recent = past[past["starts_at"] > as_of - WINDOW]
-    by_parent = past.groupby("parent_id")
-    bookings_90d = recent["parent_id"].value_counts()
-    features = pd.DataFrame(
-        {
-            "reservations_90d": bookings_90d,
-            "days_since_last": (
-                as_of - by_parent["starts_at"].max()
-            ).dt.days,
-            "cancel_rate": past["status"]
-            .eq("cancelled")
-            .groupby(past["parent_id"])
-            .mean(),
-            "avg_rating": by_parent["rating"].mean(),
-        },
-    ).dropna(subset=["reservations_90d"])
-    complaints = tables.complaints
-    opened = complaints["opened_at"]
-    recent_complaints = complaints[
-        (opened > as_of - WINDOW) & (opened <= as_of)
-    ]
-    features["complaints_90d"] = (
-        recent_complaints.groupby("parent_id")
-        .size()
-        .reindex(features.index, fill_value=0)
+    starts_at = pl.col("starts_at")
+    since = as_of - WINDOW
+    bookings = (
+        tables.reservations.filter(starts_at <= as_of)
+        .group_by("parent_id")
+        .agg(
+            (starts_at > since).sum().alias("reservations_90d"),
+            (as_of - starts_at.max())
+            .dt.total_days()
+            .alias("days_since_last"),
+            (pl.col("status") == "cancelled")
+            .mean()
+            .alias("cancel_rate"),
+            pl.col("rating").mean().alias("avg_rating"),
+        )
+        .filter(pl.col("reservations_90d") > 0)
     )
-    parents = tables.parents.set_index("parent_id")
-    tenure = as_of - parents["signed_up"]
-    features["tenure_days"] = tenure.dt.days
-    return features[FEATURES]
+    opened_at = pl.col("opened_at")
+    complaints = (
+        tables.complaints.filter(
+            opened_at.is_between(since, as_of, "right"),
+        )
+        .group_by("parent_id")
+        .agg(pl.len().alias("complaints_90d"))
+    )
+    signed_up = pl.col("signed_up")
+    return (
+        bookings.join(complaints, on="parent_id", how="left")
+        .join(tables.parents, on="parent_id")
+        .with_columns(
+            pl.col("complaints_90d").fill_null(0),
+            (as_of - signed_up)
+            .dt.total_days()
+            .alias("tenure_days"),
+        )
+        .select("parent_id", *FEATURES)
+        .sort("parent_id")
+    )
 
 
 def training_set(
     tables: Tables,
     horizon_days: int,
-) -> tuple[pd.DataFrame, pd.Series]:
-    """Build features and churn labels for a past day.
-
-    A parent has churned when they make no reservation in the `horizon_days` after the day the features describe.
+) -> tuple[pl.DataFrame, pl.Series]:
+    """Build features before the horizon and churn labels after it.
 
     Args:
         tables (Tables):
             The platform's tables.
 
         horizon_days (int):
-            Days without reservations that count as churn.
+            Days without a reservation that mean churn.
 
     Returns:
-        tuple[pd.DataFrame, pd.Series]:
-            The features and a boolean label per parent.
+        tuple[pl.DataFrame, pl.Series]:
+            The features, and whether each parent churned.
     """
-    horizon = pd.Timedelta(horizon_days, unit="D")
+    horizon = timedelta(days=horizon_days)
     as_of = latest_day(tables) - horizon
     features = parent_features(tables, as_of)
-    starts = tables.reservations["starts_at"]
-    future = tables.reservations[
-        (starts > as_of) & (starts <= as_of + horizon)
-    ]
-    churned = ~features.index.isin(future["parent_id"])
-    labels = pd.Series(
-        np.asarray(churned),
-        index=features.index,
-        name="churned",
+    starts_at = pl.col("starts_at")
+    future = tables.reservations.filter(
+        starts_at.is_between(as_of, as_of + horizon, "right"),
     )
-    return features, labels
+    churned = ~features["parent_id"].is_in(
+        future["parent_id"].implode(),
+    )
+    return features, churned.alias("churned")

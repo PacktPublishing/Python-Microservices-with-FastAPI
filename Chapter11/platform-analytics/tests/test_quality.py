@@ -1,86 +1,104 @@
+import typing as ty
 from collections.abc import Callable
+from pathlib import Path
 
-import numpy as np
-import pandas as pd
+import polars as pl
 import pytest
+from pydantic import ValidationError
 
 from platform_analytics.config import QualitySettings
 from platform_analytics.data import Tables
 from platform_analytics.model import ChurnModel
-from platform_analytics.quality import (
-    check_drift,
-    check_reservations,
-    psi,
-)
+from platform_analytics.quality import check_drift, psi
 
 
-def null_parents(frame: pd.DataFrame) -> None:
-    """Remove the parent of every reservation."""
-    frame["parent_id"] = np.nan
+def first_row(column: str, value: ty.Any) -> pl.Expr:
+    """Replace the value of `column` in the first row only.
 
+    Args:
+        column (str):
+            The column to change.
 
-def duplicate_ids(frame: pd.DataFrame) -> None:
-    """Give every reservation the same identifier."""
-    frame["reservation_id"] = 1
+        value (ty.Any):
+            The new value of the first row.
 
-
-def unknown_status(frame: pd.DataFrame) -> None:
-    """Use a status the platform does not know."""
-    frame.loc[0, "status"] = "lost"
-
-
-def unknown_slot(frame: pd.DataFrame) -> None:
-    """Use a time slot the platform does not know."""
-    frame.loc[0, "time_slot"] = "lunch"
-
-
-def free_reservation(frame: pd.DataFrame) -> None:
-    """Make one reservation cost nothing."""
-    frame.loc[0, "price"] = 0.0
-
-
-def out_of_scale_rating(frame: pd.DataFrame) -> None:
-    """Rate one reservation out of ten instead of five."""
-    frame.loc[0, "rating"] = 9.0
-
-
-def test_clean_reservations_pass(
-    tables: Tables,
-    quality: QualitySettings,
-) -> None:
-    """The simulated reservations satisfy every rule."""
-    report = check_reservations(tables.reservations, quality)
-    assert report.ok, f"unexpected problems: {report.problems}"
-
-
-@pytest.mark.parametrize(
-    "corrupt",
-    [
-        null_parents,
-        duplicate_ids,
-        unknown_status,
-        unknown_slot,
-        free_reservation,
-        out_of_scale_rating,
-    ],
-)
-def test_corrupted_reservations_fail(
-    tables: Tables,
-    quality: QualitySettings,
-    corrupt: Callable[[pd.DataFrame], None],
-) -> None:
-    """Each kind of corruption produces exactly one problem."""
-    frame = tables.reservations.copy()
-    corrupt(frame)
-    report = check_reservations(frame, quality)
-    assert len(report.problems) == 1, (
-        f"{corrupt.__name__} should break one rule, got "
-        f"{report.problems}"
+    Returns:
+        pl.Expr:
+            The changed column.
+    """
+    first = pl.int_range(pl.len()) == 0
+    return (
+        pl.when(first)
+        .then(pl.lit(value))
+        .otherwise(pl.col(column))
+        .alias(column)
     )
 
 
+def null_parents(frame: pl.DataFrame) -> pl.DataFrame:
+    """Remove the parent of one reservation."""
+    return frame.with_columns(first_row("parent_id", None))
+
+
+def duplicate_ids(frame: pl.DataFrame) -> pl.DataFrame:
+    """Give every reservation the same identifier."""
+    return frame.with_columns(pl.lit(1).alias("reservation_id"))
+
+
+def free_reservation(frame: pl.DataFrame) -> pl.DataFrame:
+    """Make one reservation cost nothing."""
+    return frame.with_columns(first_row("price", 0.0))
+
+
+def out_of_scale_rating(frame: pl.DataFrame) -> pl.DataFrame:
+    """Rate one reservation out of ten instead of five."""
+    return frame.with_columns(first_row("rating", 9.0))
+
+
+@pytest.mark.parametrize(
+    ("corrupt", "column"),
+    [
+        (null_parents, "parent_id"),
+        (duplicate_ids, "reservation_id"),
+        (free_reservation, "price"),
+        (out_of_scale_rating, "rating"),
+    ],
+)
+def test_corrupted_reservations_are_refused(
+    tables: Tables,
+    corrupt: Callable[[pl.DataFrame], pl.DataFrame],
+    column: str,
+) -> None:
+    """Each kind of corruption is refused, naming the broken column."""
+    with pytest.raises(ValidationError, match=column):
+        Tables(
+            parents=tables.parents,
+            reservations=corrupt(tables.reservations),
+            complaints=tables.complaints,
+        )
+
+
+@pytest.mark.parametrize(
+    ("column", "value"),
+    [("status", "lost"), ("time_slot", "lunch")],
+)
+def test_unknown_values_are_refused_when_read(
+    tables: Tables,
+    tmp_path: Path,
+    column: str,
+    value: str,
+) -> None:
+    """A CSV value outside a `Literal` cannot even be read."""
+    tables.save(tmp_path)
+    path = tmp_path / "reservations.csv"
+    raw = pl.read_csv(path).with_columns(first_row(column, value))
+    raw.write_csv(path)
+    with pytest.raises(pl.exceptions.PolarsError, match=value):
+        Tables.load(tmp_path)
+
+
 def test_psi_of_identical_samples_is_zero(
-    current: pd.DataFrame,
+    current: pl.DataFrame,
 ) -> None:
     """A sample compared with itself has not drifted."""
     values = current["tenure_days"].to_numpy()
@@ -108,8 +126,8 @@ def test_shifted_feature_drifts(
     shift: float,
 ) -> None:
     """Moving one feature far away is reported for that feature only."""
-    shifted = model.reference.assign(
-        tenure_days=model.reference["tenure_days"] + shift,
+    shifted = model.reference.with_columns(
+        pl.col("tenure_days") + shift,
     )
     report = check_drift(model.reference, shifted, quality)
     assert len(report.problems) == 1, "only one feature moved"

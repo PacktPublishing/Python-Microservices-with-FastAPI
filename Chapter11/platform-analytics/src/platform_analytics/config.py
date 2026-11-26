@@ -19,10 +19,24 @@ class DataSettings(BaseSettings):
         env_prefix=ENV_PREFIX + "DATA_",
         **COMMON_CONFIG,
     )
-    folder: Path = Path("data")
-    parents: int = Field(2000, gt=0)
-    days: int = Field(365, ge=120)
-    seed: int = 11
+    folder: Path = Field(
+        Path("data"),
+        description="Folder holding the platform's tables.",
+    )
+    parents: int = Field(
+        2000,
+        description="Parents to simulate.",
+        gt=0,
+    )
+    days: int = Field(
+        365,
+        description="Days of activity to simulate.",
+        ge=120,
+    )
+    seed: int = Field(
+        11,
+        description="Seed of the random simulation.",
+    )
 
 
 class ModelSettings(BaseSettings):
@@ -32,10 +46,27 @@ class ModelSettings(BaseSettings):
         env_prefix=ENV_PREFIX + "MODEL_",
         **COMMON_CONFIG,
     )
-    path: Path = Path("models/churn.joblib")
-    horizon_days: int = Field(30, gt=0)
-    test_size: float = Field(0.25, gt=0, lt=1)
-    min_auc: float = Field(0.7, ge=0.5, le=1)
+    path: Path = Field(
+        Path("models/churn.joblib"),
+        description="File holding the churn model.",
+    )
+    horizon_days: int = Field(
+        30,
+        description="Days without booking that mean churn.",
+        gt=0,
+    )
+    test_size: float = Field(
+        0.25,
+        description="Share of parents held out for testing.",
+        gt=0,
+        lt=1,
+    )
+    min_auc: float = Field(
+        0.7,
+        description="Lowest ROC AUC a model may have.",
+        ge=0.5,
+        le=1,
+    )
 
 
 class QualitySettings(BaseSettings):
@@ -45,8 +76,11 @@ class QualitySettings(BaseSettings):
         env_prefix=ENV_PREFIX + "QUALITY_",
         **COMMON_CONFIG,
     )
-    max_null_rate: float = Field(0.05, ge=0, le=1)
-    max_drift: float = Field(0.2, gt=0)
+    max_drift: float = Field(
+        0.2,
+        description="Largest PSI of a feature.",
+        gt=0,
+    )
 
 
 class ServerSettings(BaseSettings):
@@ -56,8 +90,16 @@ class ServerSettings(BaseSettings):
         env_prefix=ENV_PREFIX + "SERVER_",
         **COMMON_CONFIG,
     )
-    host: IPvAnyAddress = ip_address("127.0.0.1")
-    port: int = Field(8011, ge=1, le=65535)
+    host: IPvAnyAddress = Field(
+        ip_address("127.0.0.1"),
+        description="Address the API listens on.",
+    )
+    port: int = Field(
+        8011,
+        description="Port the API listens on.",
+        ge=1,
+        le=65535,
+    )
 
 
 class Settings(BaseSettings):

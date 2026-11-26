@@ -2,6 +2,7 @@ import subprocess
 import sys
 from unittest.mock import MagicMock
 
+import polars as pl
 import pytest
 
 from platform_analytics.__main__ import main
@@ -23,9 +24,15 @@ def test_train_refuses_bad_data(
     env: Settings,
     tables: Tables,
 ) -> None:
-    """Training stops when the reservations fail their checks."""
-    tables.reservations.loc[0, "price"] = -1.0
-    tables.save(env.data.folder)
+    """Training stops when the reservations break their contract."""
+    broken = tables.model_copy(
+        update={
+            "reservations": tables.reservations.with_columns(
+                -pl.col("price"),
+            ),
+        },
+    )
+    broken.save(env.data.folder)
     with pytest.raises(SystemExit):
         main(["train"])
     assert not env.model.path.exists(), "no model should be saved"

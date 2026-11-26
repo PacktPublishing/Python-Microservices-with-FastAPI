@@ -12,8 +12,28 @@ class Settings(BaseSettings):
         env_file=".env",
         extra="ignore",
     )
-    api_url: HttpUrl = HttpUrl("http://127.0.0.1:8011")
-    timeout: float = Field(10.0, gt=0)
-    host: IPvAnyAddress = ip_address("127.0.0.1")
-    port: int = Field(8012, ge=1, le=65535)
-    limit: int = Field(10, ge=1, le=100)
+    api_url: HttpUrl = Field(
+        HttpUrl("http://127.0.0.1:8011"),
+        description="Base URL of the analytics API.",
+    )
+    timeout: float = Field(
+        10.0,
+        description="Seconds to wait for the API.",
+        gt=0,
+    )
+    host: IPvAnyAddress = Field(
+        ip_address("127.0.0.1"),
+        description="Address the dashboard listens on.",
+    )
+    port: int = Field(
+        8012,
+        description="Port the dashboard listens on.",
+        ge=1,
+        le=65535,
+    )
+    limit: int = Field(
+        10,
+        description="At-risk parents shown at first.",
+        ge=1,
+        le=100,
+    )

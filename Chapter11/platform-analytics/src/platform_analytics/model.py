@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+import typing as ty
 from pathlib import Path
 
 import joblib
-import pandas as pd
+import polars as pl
 from loguru import logger
+from pydantic import BaseModel
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
@@ -12,6 +13,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from .config import ModelSettings
+from .data import FROZEN
 from .features import FEATURES
 
 
@@ -19,32 +21,30 @@ class ModelQualityError(RuntimeError):
     """The trained model ranks parents too poorly to be served."""
 
 
-@dataclass(frozen=True)
-class ChurnModel:
+class ChurnModel(BaseModel):
     """A fitted churn pipeline with its score and training data."""
 
+    model_config = FROZEN
     pipeline: Pipeline
     auc: float
-    reference: pd.DataFrame
+    reference: pl.DataFrame
 
-    def risk(self, features: pd.DataFrame) -> pd.Series:
+    def risk(self, features: pl.DataFrame) -> pl.DataFrame:
         """Estimate the probability that each parent churns.
 
         Args:
-            features (pd.DataFrame):
+            features (pl.DataFrame):
                 One row per parent, as built by `parent_features`.
 
         Returns:
-            pd.Series:
-                The churn probability, indexed like `features`.
+            pl.DataFrame:
+                Each parent's identifier and churn probability.
         """
         probability = self.pipeline.predict_proba(
-            features[FEATURES],
+            features.select(FEATURES),
         )[:, 1]
-        return pd.Series(
-            probability,
-            index=features.index,
-            name="risk",
+        return features.select("parent_id").with_columns(
+            risk=pl.Series(probability),
         )
 
     def save(self, path: Path) -> None:
@@ -59,7 +59,7 @@ class ChurnModel:
         logger.info("Saved churn model to {}", path)
 
     @classmethod
-    def load(cls, path: Path) -> "ChurnModel":
+    def load(cls, path: Path) -> ty.Self:
         """Read a model written by `save`.
 
         Args:
@@ -81,17 +81,17 @@ class ChurnModel:
 
 
 def train(
-    features: pd.DataFrame,
-    labels: pd.Series,
+    features: pl.DataFrame,
+    labels: pl.Series,
     settings: ModelSettings,
 ) -> ChurnModel:
     """Fit a churn model and check it on held-out parents.
 
     Args:
-        features (pd.DataFrame):
+        features (pl.DataFrame):
             One row per parent.
 
-        labels (pd.Series):
+        labels (pl.Series):
             Whether each parent churned.
 
         settings (ModelSettings):
@@ -106,7 +106,7 @@ def train(
             If the held-out ROC AUC is below `settings.min_auc`.
     """
     x_train, x_test, y_train, y_test = train_test_split(
-        features[FEATURES],
+        features.select(FEATURES),
         labels,
         test_size=settings.test_size,
         stratify=labels,
@@ -125,4 +125,8 @@ def train(
         raise ModelQualityError(
             f"ROC AUC {auc:.3f} is below {settings.min_auc}",
         )
-    return ChurnModel(pipeline, auc, x_train)
+    return ChurnModel(
+        pipeline=pipeline,
+        auc=auc,
+        reference=x_train,
+    )

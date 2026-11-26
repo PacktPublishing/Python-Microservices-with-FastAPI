@@ -1,10 +1,9 @@
+import typing as ty
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from datetime import date
-from typing import Annotated
 
-import pandas as pd
+import polars as pl
 from fastapi import (
     APIRouter,
     Depends,
@@ -19,15 +18,11 @@ from pydantic import BaseModel
 
 from .charts import weekly_chart
 from .config import Settings
-from .data import Tables
+from .data import FROZEN, Tables
 from .exploration import slot_demand, weekly_activity
 from .features import latest_day, parent_features
 from .model import ChurnModel
-from .quality import (
-    QualityReport,
-    check_drift,
-    check_reservations,
-)
+from .quality import QualityReport, check_drift
 
 
 class WeekActivity(BaseModel):
@@ -55,13 +50,13 @@ class ChurnRisk(BaseModel):
     risk: float
 
 
-@dataclass(frozen=True)
-class Portal:
+class Portal(BaseModel):
     """Everything the endpoints read, computed once per refresh."""
 
-    weekly: pd.DataFrame
-    slots: pd.DataFrame
-    risk: pd.Series
+    model_config = FROZEN
+    weekly: pl.DataFrame
+    slots: pl.DataFrame
+    risk: pl.DataFrame
     quality: list[QualityReport]
 
 
@@ -79,17 +74,17 @@ def build_portal(settings: Settings) -> Portal:
     tables = Tables.load(settings.data.folder)
     model = ChurnModel.load(settings.model.path)
     features = parent_features(tables, latest_day(tables))
-    checks = settings.quality
-    quality = [
-        check_reservations(tables.reservations, checks),
-        check_drift(model.reference, features, checks),
-    ]
+    drift = check_drift(
+        model.reference,
+        features,
+        settings.quality,
+    )
     logger.info("Portal ready for {} parents", len(features))
     return Portal(
         weekly=weekly_activity(tables.reservations),
         slots=slot_demand(tables.reservations),
-        risk=model.risk(features).sort_values(ascending=False),
-        quality=quality,
+        risk=model.risk(features).sort("risk", descending=True),
+        quality=[drift],
     )
 
 
@@ -108,21 +103,21 @@ def get_portal(request: Request) -> Portal:
     return portal
 
 
-PortalDep = Annotated[Portal, Depends(get_portal)]
+PortalDep = ty.Annotated[Portal, Depends(get_portal)]
 router = APIRouter()
 
 
 @router.get("/activity/weekly")
 def read_weekly(portal: PortalDep) -> list[WeekActivity]:
     """Return the activity of every week."""
-    rows = portal.weekly.reset_index().to_dict("records")
+    rows = portal.weekly.to_dicts()
     return [WeekActivity.model_validate(row) for row in rows]
 
 
 @router.get("/activity/slots")
 def read_slots(portal: PortalDep) -> list[SlotDemand]:
     """Return the demand per day of the week and time slot."""
-    rows = portal.slots.reset_index().to_dict("records")
+    rows = portal.slots.to_dicts()
     return [SlotDemand.model_validate(row) for row in rows]
 
 
@@ -138,25 +133,20 @@ def read_weekly_chart(portal: PortalDep) -> Response:
 @router.get("/parents/at-risk")
 def read_at_risk(
     portal: PortalDep,
-    limit: Annotated[int, Query(ge=1, le=100)] = 10,
+    limit: ty.Annotated[int, Query(ge=1, le=100)] = 10,
 ) -> list[ChurnRisk]:
     """Return the active parents most likely to churn."""
-    top = portal.risk.head(limit)
-    return [
-        ChurnRisk(parent_id=int(parent), risk=risk)
-        for parent, risk in top.items()
-    ]
+    rows = portal.risk.head(limit).to_dicts()
+    return [ChurnRisk.model_validate(row) for row in rows]
 
 
 @router.get("/parents/{parent_id}/risk")
 def read_risk(parent_id: int, portal: PortalDep) -> ChurnRisk:
     """Return the churn risk of one active parent."""
-    if parent_id not in portal.risk.index:
+    found = portal.risk.filter(pl.col("parent_id") == parent_id)
+    if found.is_empty():
         raise HTTPException(404, "Parent is not active")
-    return ChurnRisk(
-        parent_id=parent_id,
-        risk=portal.risk[parent_id],
-    )
+    return ChurnRisk.model_validate(found.row(0, named=True))
 
 
 @router.get("/quality")

@@ -1,5 +1,8 @@
-import pandas as pd
+from datetime import timedelta
+
+import polars as pl
 import pytest
+from polars.testing import assert_frame_equal
 
 from platform_analytics.data import Tables
 from platform_analytics.features import (
@@ -10,22 +13,24 @@ from platform_analytics.features import (
 
 def test_features_ignore_the_future(tables: Tables) -> None:
     """Rows dated after `as_of` do not change the features."""
-    as_of = latest_day(tables) - pd.Timedelta(60, unit="D")
-    reservations = tables.reservations
-    complaints = tables.complaints
+    as_of = latest_day(tables) - timedelta(days=60)
     past_only = Tables(
-        tables.parents,
-        reservations[reservations["starts_at"] <= as_of],
-        complaints[complaints["opened_at"] <= as_of],
+        parents=tables.parents,
+        reservations=tables.reservations.filter(
+            pl.col("starts_at") <= as_of,
+        ),
+        complaints=tables.complaints.filter(
+            pl.col("opened_at") <= as_of,
+        ),
     )
-    pd.testing.assert_frame_equal(
+    assert_frame_equal(
         parent_features(tables, as_of),
         parent_features(past_only, as_of),
     )
 
 
 def test_features_describe_active_parents(
-    current: pd.DataFrame,
+    current: pl.DataFrame,
 ) -> None:
     """Every described parent booked in the last 90 days."""
     assert (current["reservations_90d"] > 0).all(), (
@@ -38,18 +43,19 @@ def test_features_describe_active_parents(
 
 def test_labels_follow_the_horizon(
     tables: Tables,
-    labelled: tuple[pd.DataFrame, pd.Series],
+    labelled: tuple[pl.DataFrame, pl.Series],
     horizon: int,
 ) -> None:
     """A parent is churned exactly when they do not book in the horizon."""
     features, labels = labelled
-    as_of = latest_day(tables) - pd.Timedelta(horizon, unit="D")
-    starts = tables.reservations["starts_at"]
-    booked = set(
-        tables.reservations.loc[starts > as_of, "parent_id"],
+    as_of = latest_day(tables) - timedelta(days=horizon)
+    booked = tables.reservations.filter(
+        pl.col("starts_at") > as_of,
     )
-    expected = ~features.index.isin(list(booked))
-    assert (labels.to_numpy() == expected).all(), (
+    expected = ~features["parent_id"].is_in(
+        booked["parent_id"].implode(),
+    )
+    assert labels.equals(expected, check_names=False), (
         "labels should mark parents with no later reservation"
     )
 
