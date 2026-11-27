@@ -11,6 +11,7 @@ from pydantic_settings import (
 
 from .api import create_app
 from .config import Settings
+from .dashboard import mount_dashboard
 from .data import Tables
 from .features import training_set
 from .model import train
@@ -47,13 +48,15 @@ class Train(Settings):
 
 
 class Serve(Settings):
-    """Serve the analytics API."""
+    """Serve the analytics API and its dashboard."""
 
     def cli_cmd(self) -> None:
         """Serve until interrupted."""
         logger.info("Serving on port {}", self.server.port)
+        app = create_app(self)
+        mount_dashboard(app, self.server)
         uvicorn.run(
-            create_app(self),
+            app,
             host=str(self.server.host),
             port=self.server.port,
         )

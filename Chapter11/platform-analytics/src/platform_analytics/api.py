@@ -13,6 +13,7 @@ from fastapi import (
     Request,
     Response,
 )
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from pydantic import BaseModel
 
@@ -180,6 +181,11 @@ def create_app(settings: Settings) -> FastAPI:
 
     app = FastAPI(title="Platform analytics", lifespan=lifespan)
     app.include_router(router)
+    frontend = StaticFiles(
+        directory=settings.server.frontend,
+        html=True,
+    )
+    app.mount("/app", frontend)
 
     @app.post("/refresh", status_code=204)
     def refresh() -> None:

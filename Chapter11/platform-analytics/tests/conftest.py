@@ -5,12 +5,18 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 from fastapi.testclient import TestClient
+from nicegui.testing.general import nicegui_reset_globals
 
-from platform_analytics.api import create_app
+from platform_analytics.api import (
+    Portal,
+    build_portal,
+    create_app,
+)
 from platform_analytics.config import (
     DataSettings,
     ModelSettings,
     QualitySettings,
+    ServerSettings,
     Settings,
 )
 from platform_analytics.data import Tables
@@ -29,6 +35,7 @@ def settings(tmp_path: Path) -> Settings:
     return Settings(
         data=DataSettings(folder=tmp_path / "data", parents=400),
         model=ModelSettings(path=tmp_path / "model.joblib"),
+        server=ServerSettings(frontend=tmp_path / "frontend"),
     )
 
 
@@ -49,6 +56,11 @@ def env(
     monkeypatch.setenv(
         "ANALYTICS_MODEL_PATH",
         str(settings.model.path),
+    )
+    settings.server.frontend.mkdir(exist_ok=True)
+    monkeypatch.setenv(
+        "ANALYTICS_SERVER_FRONTEND",
+        str(settings.server.frontend),
     )
     return settings
 
@@ -109,16 +121,48 @@ def saved(
 
 
 @pytest.fixture
-def client(saved: Settings) -> Iterator[TestClient]:
+def portal(saved: Settings) -> Portal:
+    """The answers computed from the saved data and model."""
+    return build_portal(saved)
+
+
+@pytest.fixture
+def more() -> int:
+    """A larger number of at-risk parents, picked on the slider."""
+    return 5
+
+
+@pytest.fixture
+def page() -> str:
+    """The content of the built frontend's page."""
+    return "<h1>Parents at risk</h1>"
+
+
+@pytest.fixture
+def frontend(saved: Settings, page: str) -> Settings:
+    """Settings whose frontend folder holds an `index.html`."""
+    saved.server.frontend.mkdir(exist_ok=True)
+    (saved.server.frontend / "index.html").write_text(page)
+    return saved
+
+
+@pytest.fixture
+def client(frontend: Settings) -> Iterator[TestClient]:
     """A client of the analytics API, started on the saved data."""
-    with TestClient(create_app(saved)) as client:
+    with TestClient(create_app(frontend)) as client:
         yield client
 
 
 @pytest.fixture
 def run_server() -> Iterator[MagicMock]:
-    """Replace `uvicorn.run` so the serve command returns."""
-    with patch("platform_analytics.__main__.uvicorn.run") as run:
+    """Replace `uvicorn.run` so the serve command returns.
+
+    NiceGUI's globals are reset, so mounting the dashboard works after other tests started NiceGUI.
+    """
+    with (
+        nicegui_reset_globals(),
+        patch("platform_analytics.__main__.uvicorn.run") as run,
+    ):
         yield run
 
 

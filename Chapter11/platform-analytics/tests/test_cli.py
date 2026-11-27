@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import polars as pl
 import pytest
+from starlette.routing import Mount
 
 from platform_analytics.__main__ import main
 from platform_analytics.config import Settings
@@ -42,6 +43,17 @@ def test_serve(env: Settings, run_server: MagicMock) -> None:
     """Serve starts uvicorn on the configured port."""
     main(["serve"])
     assert run_server.call_args.kwargs["port"] == env.server.port
+
+
+@pytest.mark.usefixtures("env")
+def test_serve_mounts_dashboard(run_server: MagicMock) -> None:
+    """Serve adds the dashboard to the API it runs."""
+    main(["serve"])
+    app = run_server.call_args.args[0]
+    mounts = [r.path for r in app.routes if isinstance(r, Mount)]
+    assert "/dashboard" in mounts, (
+        "the dashboard should be mounted"
+    )
 
 
 @pytest.mark.integration

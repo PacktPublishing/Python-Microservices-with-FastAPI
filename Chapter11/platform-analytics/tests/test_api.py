@@ -89,5 +89,11 @@ def test_refresh(client: TestClient) -> None:
     )
 
 
+def test_frontend(client: TestClient, page: str) -> None:
+    """The built frontend is served at `/app/`."""
+    response = client.get("/app/")
+    assert response.text == page, "/app/ should serve index.html"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-x", "-s"])

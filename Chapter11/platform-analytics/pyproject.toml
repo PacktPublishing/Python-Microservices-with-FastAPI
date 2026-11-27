@@ -11,6 +11,7 @@ dependencies = [
     "fastapi>=0.143.5",
     "loguru>=0.7.3",
     "matplotlib>=3.10.0",
+    "nicegui>=4.1.0",
     "numpy>=2.3.0",
     "patito>=0.8.6",
     "polars>=2.2.0",
@@ -23,10 +24,12 @@ dependencies = [
 dev = [
     "httpx2>=2.14.0",
     "pytest>=8.4.1",
+    "pytest-asyncio>=1.4.0",
     "ruff>=0.12.2",
 ]
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 markers = [
     "integration: runs the command line in a subprocess",
 ]

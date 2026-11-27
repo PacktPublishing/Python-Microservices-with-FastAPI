@@ -100,6 +100,16 @@ class ServerSettings(BaseSettings):
         ge=1,
         le=65535,
     )
+    at_risk: int = Field(
+        10,
+        description="At-risk parents the dashboard shows first.",
+        ge=1,
+        le=100,
+    )
+    frontend: Path = Field(
+        Path("frontend"),
+        description="Built frontend folder, served at /app.",
+    )
 
 
 class Settings(BaseSettings):

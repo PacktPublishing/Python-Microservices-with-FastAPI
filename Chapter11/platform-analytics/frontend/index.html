@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head><title>Parents at risk</title></head>
+<body>
+  <h1>Parents at risk</h1>
+  <ol id="parents"></ol>
+  <script>
+    fetch("/parents/at-risk?limit=5")
+      .then((response) => response.json())
+      .then((parents) => {
+        const list = document.getElementById("parents");
+        for (const { parent_id, risk } of parents) {
+          const item = document.createElement("li");
+          item.textContent = `Parent ${parent_id}: ${risk}`;
+          list.append(item);
+        }
+      });
+  </script>
+</body>
+</html>
